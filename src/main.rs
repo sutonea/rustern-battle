@@ -1,13 +1,16 @@
-use iced::widget::{button, column, text, Column};
+use iced::widget::{button, column, text, Column, Text};
 use iced::Center;
 
 pub fn main() -> iced::Result {
     iced::run("Rustern-battle", App::update, App::view)
 }
 
-#[derive(Default)]
 struct App {
-    value: i64,
+    enemies: Vec<Enemy>,
+}
+
+struct Enemy {
+    name: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -16,25 +19,36 @@ enum Message {
     Decrement,
 }
 
+impl Default for App {
+    fn default() -> Self {
+        App::new()
+    }
+}
+
 impl App {
+    fn new() -> Self {
+        Self {
+            enemies: vec![
+                Enemy { name: "Enemy A".to_string() },
+                Enemy { name: "Enemy B".to_string() },
+                Enemy { name: "Enemy C".to_string() },
+            ],
+        }
+    }
     fn update(&mut self, message: Message) {
         match message {
             Message::Increment => {
-                self.value += 1;
             }
             Message::Decrement => {
-                self.value -= 1;
             }
         }
     }
 
     fn view(&self) -> Column<Message> {
-        column![
-            button("Increment").on_press(Message::Increment),
-            text(self.value).size(50),
-            button("Decrement").on_press(Message::Decrement)
-        ]
-            .padding(20)
-            .align_x(Center)
+        let mut column = Column::new();
+        for enemy in &self.enemies {
+            column = column.push(enemy.name.as_str());
+        }
+        column.into()
     }
 }
