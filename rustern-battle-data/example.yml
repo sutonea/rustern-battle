@@ -1,0 +1,7 @@
+enemies:
+  - name: "Slime"
+    hp: 100
+  - name: "Special Slime"
+    hp: 1000
+  - name: "Super Special Slime"
+    hp: 10000
