@@ -1,4 +1,4 @@
-use iced::widget::{button, column, text, Column, Text};
+use iced::widget::{button, column, text, Column, pick_list, Text};
 use iced::Center;
 
 pub fn main() -> iced::Result {
@@ -7,16 +7,24 @@ pub fn main() -> iced::Result {
 
 struct App {
     enemies: Vec<Enemy>,
+    info: String,
+    selected_enemy: Option<Enemy>
 }
 
+#[derive(Debug, Clone, PartialEq)]
 struct Enemy {
     name: String,
 }
 
-#[derive(Debug, Clone, Copy)]
+impl std::fmt::Display for Enemy {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+#[derive(Debug, Clone)]
 enum Message {
-    Increment,
-    Decrement,
+    EnemySelected(Enemy),
 }
 
 impl Default for App {
@@ -33,22 +41,30 @@ impl App {
                 Enemy { name: "Enemy B".to_string() },
                 Enemy { name: "Enemy C".to_string() },
             ],
+            info: "".to_string(),
+            selected_enemy: None,
         }
     }
     fn update(&mut self, message: Message) {
         match message {
-            Message::Increment => {
-            }
-            Message::Decrement => {
+            Message::EnemySelected(enemy) => {
+                self.info = enemy.name.clone();
             }
         }
     }
 
     fn view(&self) -> Column<Message> {
         let mut column = Column::new();
+        column = column.push(self.info.as_str());
         for enemy in &self.enemies {
             column = column.push(enemy.name.as_str());
         }
+        let pick_list = pick_list(
+            self.enemies.clone(),
+            self.selected_enemy.clone(),
+            Message::EnemySelected
+        );
+        column = column.push(pick_list);
         column.into()
     }
 }
