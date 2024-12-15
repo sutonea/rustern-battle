@@ -1,19 +1,27 @@
 use iced::widget::{button, column, text, Column, pick_list, Text};
 use iced::Center;
+use serde::Deserialize;
+
 
 pub fn main() -> iced::Result {
     iced::run("Rustern-battle", App::update, App::view)
 }
 
 struct App {
-    enemies: Vec<Enemy>,
+    enemies: Enemies,
     info: String,
     selected_enemy: Option<Enemy>
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Deserialize)]
+struct Enemies {
+    enemies: Vec<Enemy>
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Enemy {
     name: String,
+    hp: usize,
 }
 
 impl std::fmt::Display for Enemy {
@@ -35,12 +43,12 @@ impl Default for App {
 
 impl App {
     fn new() -> Self {
+        let path = std::env::var("RUSTERN_FILE_PATH").unwrap();
+        let yaml_contents = std::fs::read_to_string(path).unwrap();
+        let enemies: Enemies = serde_yaml::from_str(&yaml_contents).unwrap();
+
         Self {
-            enemies: vec![
-                Enemy { name: "Enemy A".to_string() },
-                Enemy { name: "Enemy B".to_string() },
-                Enemy { name: "Enemy C".to_string() },
-            ],
+            enemies: enemies,
             info: "".to_string(),
             selected_enemy: None,
         }
@@ -56,11 +64,11 @@ impl App {
     fn view(&self) -> Column<Message> {
         let mut column = Column::new();
         column = column.push(self.info.as_str());
-        for enemy in &self.enemies {
+        for enemy in &self.enemies.enemies {
             column = column.push(enemy.name.as_str());
         }
         let pick_list = pick_list(
-            self.enemies.clone(),
+            self.enemies.enemies.clone(),
             self.selected_enemy.clone(),
             Message::EnemySelected
         );
