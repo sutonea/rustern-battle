@@ -43,8 +43,9 @@ impl Default for App {
 
 impl App {
     fn new() -> Self {
-        let path = std::env::var("RUSTERN_FILE_PATH").unwrap();
-        let yaml_contents = std::fs::read_to_string(path).unwrap();
+        let dir = std::env::var("RUSTERN_MASTER_DIR").unwrap();
+        let file_of_enemies = dir + "/enemies.yml";
+        let yaml_contents = std::fs::read_to_string(file_of_enemies).unwrap();
         let enemies: Enemies = serde_yaml::from_str(&yaml_contents).unwrap();
 
         Self {
