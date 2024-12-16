@@ -13,6 +13,105 @@ struct App {
     selected_enemy: Option<Enemy>
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+struct Skills {
+    skills: Vec<Skill>
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct Skill {
+    name: String,
+    skill_type: SkillType
+}
+
+#[derive(Debug, Clone, Deserialize)]
+enum SkillType {
+    Attack(//攻撃
+        Probability,//成功率
+        Power//威力
+    ),
+    Heal(//回復
+        Ratio//最大HPに対する回復割合
+    ),
+    AddSpecialStatusToEnemy(//敵に特殊状態を付与
+        Probability,//成功率
+        SpecialStatus //特殊状態
+    ),
+    AttackAndAddSpecialStatusToEnemy(//敵に攻撃しつつ特殊状態を付与
+        Probability,//成功率
+        Power,//威力
+        Probability,//特殊状態付与確率
+        SpecialStatus//特殊状態
+    ),
+}
+
+fn useSkill(skillType: SkillType) {
+    match skillType {
+        SkillType::Attack(prob, pow) => {
+            // TODO : 攻撃処理
+        }
+        SkillType::Heal(_) => {
+            // TODO: 回復処理
+        }
+        SkillType::AddSpecialStatusToEnemy(_, _) => {
+            // TODO: 敵に特殊状態付与
+        }
+        SkillType::AttackAndAddSpecialStatusToEnemy(_, _, _, _) => {
+            // TODO: 攻撃と敵に特殊状態付与
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct Power {
+    value: f32,
+}
+
+impl Power {
+    fn new(value: f32) -> Self {
+        Self { value }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct Probability {
+    percentage: f32,
+}
+
+impl Probability {
+    fn new(percentage: f32) -> Probability {
+        Probability { percentage }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct Ratio {
+    percentage: f32,
+}
+
+impl Ratio {
+    fn new(percentage: f32) -> Ratio {
+        Ratio { percentage }
+    }
+}
+
+enum AdditionalEffect {
+    AddSpecialStatus(SpecialStatus, Probability),
+    DrainHP(Ratio),
+}
+
+
+#[derive(Debug, Clone, Deserialize)]
+enum SpecialStatus {
+    Poisoned, // 継続ダメージ(最大HPの16分の1)、攻撃力ダウン
+    Burned, // 継続ダメージ(最大HPの8分の1)
+    Falter, // 回避不能、行動不能、防御力ダウン
+    BlackOut, // 回避不能、攻撃が外れる、追加効果無効
+    Frozen,  // 回避不能、追加効果無効
+    Feather, // 回避率上昇、防御力ダウン
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct Enemies {
     enemies: Vec<Enemy>
@@ -21,7 +120,7 @@ struct Enemies {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Enemy {
     name: String,
-    hp: usize,
+    hp: f32,
 }
 
 impl std::fmt::Display for Enemy {
@@ -43,9 +142,10 @@ impl Default for App {
 
 impl App {
     fn new() -> Self {
-        let dir = std::env::var("RUSTERN_MASTER_DIR").unwrap();
-        let file_of_enemies = dir + "/enemies.yml";
-        let yaml_contents = std::fs::read_to_string(file_of_enemies).unwrap();
+        let dir = std::env::var("RUSTERN_DIR").unwrap();
+        let file_name = "example.yml";
+        let file_path = format!("{}/{}", dir, file_name);
+        let yaml_contents = std::fs::read_to_string(file_path).unwrap();
         let enemies: Enemies = serde_yaml::from_str(&yaml_contents).unwrap();
 
         Self {
