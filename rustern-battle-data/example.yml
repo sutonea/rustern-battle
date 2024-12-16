@@ -1,7 +1,56 @@
 enemies:
-  - name: "Slime"
-    hp: 100
-  - name: "Special Slime"
-    hp: 1000
-  - name: "Super Special Slime"
-    hp: 10000
+  - name: Goblin
+    hp: 100.0
+    skills:
+      - name: Basic Attack
+        skill_type:
+          Attack:
+            probability:
+              percentage: 90.0
+            power:
+              value: 30.0
+      - name: Poison Strike
+        skill_type:
+          AddSpecialStatusToEnemy:
+            probability:
+              percentage: 60.0
+            special_status: Poisoned
+
+  - name: Fire Elemental
+    hp: 150.0
+    skills:
+      - name: Flame Burst
+        skill_type:
+          AttackAndAddSpecialStatusToEnemy:
+            attack_probability:
+              percentage: 80.0
+            power:
+              value: 50.0
+            status_probability:
+              percentage: 50.0
+            special_status: Burned
+      - name: Fire Shield
+        skill_type:
+          AddSpecialStatusToEnemy:
+            probability:
+              percentage: 100.0
+            special_status: Burned
+
+  - name: Ice Golem
+    hp: 200.0
+    skills:
+      - name: Frostbite
+        skill_type:
+          AttackAndAddSpecialStatusToEnemy:
+            attack_probability:
+              percentage: 70.0
+            power:
+              value: 40.0
+            status_probability:
+              percentage: 60.0
+            special_status: Frozen
+      - name: Ice Wall
+        skill_type:
+          Heal:
+            ratio:
+              percentage: 20.0
