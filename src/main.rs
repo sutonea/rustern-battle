@@ -10,6 +10,8 @@ pub fn main() -> iced::Result {
 struct App {
     enemies: Enemies,
     info: String,
+    system_info: String,
+    choice_info: String,
     selected_enemy: Option<Enemy>
 }
 
@@ -151,6 +153,8 @@ impl App {
         Self {
             enemies: enemies,
             info: "".to_string(),
+            system_info: "This is system info".to_string(),
+            choice_info: "This is choice info".to_string(),
             selected_enemy: None,
         }
     }
@@ -164,6 +168,10 @@ impl App {
 
     fn view(&self) -> Column<Message> {
         let mut column = Column::new();
+        let system_info = Text::new(self.system_info.as_str());
+        let choice_info = Text::new(self.choice_info.as_str());
+        column = column.push(system_info);
+        column = column.push(choice_info);
         column = column.push(self.info.as_str());
         for enemy in &self.enemies.enemies {
             column = column.push(enemy.name.as_str());
