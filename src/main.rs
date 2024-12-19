@@ -8,12 +8,35 @@ pub fn main() -> iced::Result {
 }
 
 struct App {
-    enemies: Enemies,
+    master_data: MasterData,
     system_info: String,
     choice_info: String,
     selected_enemy: Option<Enemy>
 }
 
+
+#[derive(Debug, Clone, Deserialize)]
+struct Items {
+    items: Vec<Item>
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct Item {
+    name: String,
+    rarity: Rarity,
+    effect: Effect
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct Rarity {
+    value: u8
+}
+
+impl Rarity {
+    fn new(value: u8) -> Rarity {
+        Rarity { value }
+    }
+}
 
 #[derive(Debug, Clone, Deserialize)]
 struct Skills {
@@ -114,6 +137,12 @@ enum SpecialStatus {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+struct MasterData {
+    enemies: Enemies,
+    items: Items,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 struct Enemies {
     enemies: Vec<Enemy>
 }
@@ -147,10 +176,10 @@ impl App {
         let file_name = "example.yml";
         let file_path = format!("{}/{}", dir, file_name);
         let yaml_contents = std::fs::read_to_string(file_path).unwrap();
-        let enemies: Enemies = serde_yaml::from_str(&yaml_contents).unwrap();
+        let master_data: MasterData = serde_yaml::from_str(&yaml_contents).unwrap();
 
         Self {
-            enemies: enemies,
+            master_data: master_data,
             system_info: "This is system info".to_string(),
             choice_info: "This is choice info".to_string(),
             selected_enemy: None,
@@ -170,11 +199,11 @@ impl App {
         let choice_info = Text::new(self.choice_info.as_str());
         column = column.push(system_info);
         column = column.push(choice_info);
-        for enemy in &self.enemies.enemies {
+        for enemy in &self.master_data.enemies.enemies {
             column = column.push(enemy.name.as_str());
         }
         let pick_list = pick_list(
-            self.enemies.enemies.clone(),
+            self.master_data.enemies.enemies.clone(),
             self.selected_enemy.clone(),
             Message::EnemySelected
         );

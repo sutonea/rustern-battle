@@ -1,56 +1,44 @@
 enemies:
-  - name: Goblin
-    hp: 100.0
-    skills:
-      - name: Basic Attack
-        effect:
-          Attack:
-            probability:
-              percentage: 90.0
-            power:
-              value: 30.0
-      - name: Poison Strike
-        effect:
-          AddSpecialStatusToEnemy:
-            probability:
-              percentage: 60.0
-            special_status: Poisoned
+  enemies:
+    - name: "Goblin"
+      hp: 30.0
+    - name: "Troll"
+      hp: 120.0
+    - name: "Dragon"
+      hp: 300.0
 
-  - name: Fire Elemental
-    hp: 150.0
-    skills:
-      - name: Flame Burst
-        effect:
-          AttackAndAddSpecialStatusToEnemy:
-            attack_probability:
-              percentage: 80.0
-            power:
-              value: 50.0
-            status_probability:
-              percentage: 50.0
-            special_status: Burned
-      - name: Fire Shield
-        effect:
-          AddSpecialStatusToEnemy:
-            probability:
-              percentage: 100.0
-            special_status: Burned
+items:
+  items:
+    - name: "Health Potion"
+      rarity:
+        value: 1
+      effect: !Heal
+        percentage: 0.25
+    - name: "Mana Elixir"
+      rarity:
+        value: 2
+      effect: !Heal
+        percentage: 0.50
+    - name: "Fire Bomb"
+      rarity:
+        value: 3
+      effect: !Attack
+        - percentage: 0.8
+        - value: 50.0
 
-  - name: Ice Golem
-    hp: 200.0
-    skills:
-      - name: Frostbite
-        effect:
-          AttackAndAddSpecialStatusToEnemy:
-            attack_probability:
-              percentage: 70.0
-            power:
-              value: 40.0
-            status_probability:
-              percentage: 60.0
-            special_status: Frozen
-      - name: Ice Wall
-        effect:
-          Heal:
-            ratio:
-              percentage: 20.0
+skills:
+  skills:
+    - name: "Sword Slash"
+      effect: !Attack
+        - percentage: 0.9
+        - value: 30.0
+    - name: "Ice Spear"
+      effect: !AttackAndAddSpecialStatusToEnemy
+        - percentage: 0.7
+        - value: 20.0
+        - percentage: 0.5
+        - Frozen
+    - name: "Poison Cloud"
+      effect: !AddSpecialStatusToEnemy
+        - percentage: 0.6
+        - Poisoned
