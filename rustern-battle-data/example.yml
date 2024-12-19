@@ -3,14 +3,14 @@ enemies:
     hp: 100.0
     skills:
       - name: Basic Attack
-        skill_type:
+        effect:
           Attack:
             probability:
               percentage: 90.0
             power:
               value: 30.0
       - name: Poison Strike
-        skill_type:
+        effect:
           AddSpecialStatusToEnemy:
             probability:
               percentage: 60.0
@@ -20,7 +20,7 @@ enemies:
     hp: 150.0
     skills:
       - name: Flame Burst
-        skill_type:
+        effect:
           AttackAndAddSpecialStatusToEnemy:
             attack_probability:
               percentage: 80.0
@@ -30,7 +30,7 @@ enemies:
               percentage: 50.0
             special_status: Burned
       - name: Fire Shield
-        skill_type:
+        effect:
           AddSpecialStatusToEnemy:
             probability:
               percentage: 100.0
@@ -40,7 +40,7 @@ enemies:
     hp: 200.0
     skills:
       - name: Frostbite
-        skill_type:
+        effect:
           AttackAndAddSpecialStatusToEnemy:
             attack_probability:
               percentage: 70.0
@@ -50,7 +50,7 @@ enemies:
               percentage: 60.0
             special_status: Frozen
       - name: Ice Wall
-        skill_type:
+        effect:
           Heal:
             ratio:
               percentage: 20.0
