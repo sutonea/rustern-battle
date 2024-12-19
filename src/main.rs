@@ -14,7 +14,7 @@ struct App {
     system_info: String,
     choice_info: String,
     items_for_get: Vec<Item>,
-    owned_items: Vec<Item>,
+    owned_items: Vec<ItemContainer>,
     selected_item: Option<Item>,
     enemies_for_attack: Vec<Enemy>,
     selected_enemy: Option<Enemy>
@@ -24,6 +24,18 @@ struct App {
 #[derive(Debug, Clone, Deserialize)]
 struct Items {
     items: Vec<Item>
+}
+
+#[derive(Debug)]
+struct ItemContainer {
+    item: Item,
+    amount: usize,
+}
+
+impl std::fmt::Display for ItemContainer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{} (stock: {})", self.item.name.clone(), self.amount)
+    }
 }
 
 
@@ -246,8 +258,22 @@ impl App {
             Message::EnemySelected(enemy) => {
                 self.choice_info = enemy.name.clone();
             }
-            Message::GetSelectedItem => {
-                self.system_info = "You got an item: ".to_owned() + self.selected_item.clone().unwrap().name.as_str();
+            Message::GetSelectedItem => { // TODO : この処理のテストコードを追加
+                if let Some(selected_item) = self.selected_item.clone() {
+                    if let Some(existing_item) = self.owned_items.iter_mut().find(|container| container.item == selected_item) {
+                        existing_item.amount += 1;
+                    } else {
+                        self.owned_items.push(ItemContainer {
+                            item: selected_item.clone(),
+                            amount: 1,
+                        });
+                    }
+                    self.system_info = format!("You got an item: {}", selected_item.name);
+                    self.selected_item = None;
+                    self.items_for_get = vec![];
+                } else {
+                    self.system_info = "No item selected.".to_string();
+                }
             }
         }
     }
@@ -280,4 +306,52 @@ impl App {
 #[derive(Debug, Clone)]
 enum RandomCollection {
     RandomItemCollection(Rarity, i8)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_selected_item() {
+        // テスト用の初期データを作成
+        let mut app = App::new();
+        let test_item = Item {
+            name: "Test Item".to_string(),
+            rarity: Rarity::new(1),
+            effect: Effect::Heal(Ratio::new(0.1)),
+        };
+        app.selected_item = Some(test_item.clone());
+        app.owned_items = vec![];
+
+        // 処理を実行
+        app.update(Message::GetSelectedItem);
+
+        // 結果を検証
+        assert_eq!(app.owned_items.len(), 1);
+        assert_eq!(app.owned_items[0].item, test_item);
+        assert_eq!(app.owned_items[0].amount, 1);
+        assert_eq!(app.system_info, format!("You got an item: {}", test_item.name));
+
+        // アイテムを追加して再度テスト
+        app.selected_item = Some(test_item.clone());
+        app.update(Message::GetSelectedItem);
+        assert_eq!(app.owned_items.len(), 1); // 所持アイテム数は変わらない
+        assert_eq!(app.owned_items[0].amount, 2); // 同じアイテムの数が増える
+    }
+
+    #[test]
+    fn test_get_selected_item_no_selection() {
+        // テスト用の初期データを作成
+        let mut app = App::new();
+        app.selected_item = None;
+        app.owned_items = vec![];
+
+        // 処理を実行
+        app.update(Message::GetSelectedItem);
+
+        // 結果を検証
+        assert_eq!(app.owned_items.len(), 0);
+        assert_eq!(app.system_info, "No item selected.");
+    }
 }
