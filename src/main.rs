@@ -23,11 +23,11 @@ struct Skills {
 #[derive(Debug, Clone, Deserialize)]
 struct Skill {
     name: String,
-    skill_type: SkillType
+    effect: Effect
 }
 
 #[derive(Debug, Clone, Deserialize)]
-enum SkillType {
+enum Effect {
     Attack(//攻撃
         Probability,//成功率
         Power//威力
@@ -47,18 +47,18 @@ enum SkillType {
     ),
 }
 
-fn useSkill(skillType: SkillType) {
+fn useSkill(skillType: Effect) {
     match skillType {
-        SkillType::Attack(prob, pow) => {
+        Effect::Attack(prob, pow) => {
             // TODO : 攻撃処理
         }
-        SkillType::Heal(_) => {
+        Effect::Heal(_) => {
             // TODO: 回復処理
         }
-        SkillType::AddSpecialStatusToEnemy(_, _) => {
+        Effect::AddSpecialStatusToEnemy(_, _) => {
             // TODO: 敵に特殊状態付与
         }
-        SkillType::AttackAndAddSpecialStatusToEnemy(_, _, _, _) => {
+        Effect::AttackAndAddSpecialStatusToEnemy(_, _, _, _) => {
             // TODO: 攻撃と敵に特殊状態付与
         }
     }
