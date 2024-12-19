@@ -1,16 +1,22 @@
-use iced::widget::{button, column, text, Column, pick_list, Text};
+use iced::widget::{button, column, text, Column, Text};
 use iced::Center;
 use serde::Deserialize;
-
+use crate::RandomCollection::RandomItemCollection;
 
 pub fn main() -> iced::Result {
     iced::run("Rustern-battle", App::update, App::view)
 }
 
 struct App {
+    scenario: Vec<Message>,
+    scenario_idx: usize,
     master_data: MasterData,
     system_info: String,
     choice_info: String,
+    items_for_get: Vec<Item>,
+    owned_items: Vec<Item>,
+    selected_item: Option<Item>,
+    enemies_for_attack: Vec<Enemy>,
     selected_enemy: Option<Enemy>
 }
 
@@ -20,14 +26,22 @@ struct Items {
     items: Vec<Item>
 }
 
-#[derive(Debug, Clone, Deserialize)]
+
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Item {
     name: String,
     rarity: Rarity,
     effect: Effect
 }
 
-#[derive(Debug, Clone, Deserialize)]
+impl std::fmt::Display for Item {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Rarity {
     value: u8
 }
@@ -49,7 +63,7 @@ struct Skill {
     effect: Effect
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 enum Effect {
     Attack(//攻撃
         Probability,//成功率
@@ -73,21 +87,17 @@ enum Effect {
 fn useSkill(skillType: Effect) {
     match skillType {
         Effect::Attack(prob, pow) => {
-            // TODO : 攻撃処理
         }
         Effect::Heal(_) => {
-            // TODO: 回復処理
         }
         Effect::AddSpecialStatusToEnemy(_, _) => {
-            // TODO: 敵に特殊状態付与
         }
         Effect::AttackAndAddSpecialStatusToEnemy(_, _, _, _) => {
-            // TODO: 攻撃と敵に特殊状態付与
         }
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq)]
 struct Power {
     value: f32,
 }
@@ -98,7 +108,7 @@ impl Power {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq)]
 struct Probability {
     percentage: f32,
 }
@@ -109,7 +119,7 @@ impl Probability {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq)]
 struct Ratio {
     percentage: f32,
 }
@@ -126,7 +136,7 @@ enum AdditionalEffect {
 }
 
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq)]
 enum SpecialStatus {
     Poisoned, // 継続ダメージ(最大HPの16分の1)、攻撃力ダウン
     Burned, // 継続ダメージ(最大HPの8分の1)
@@ -161,6 +171,11 @@ impl std::fmt::Display for Enemy {
 
 #[derive(Debug, Clone)]
 enum Message {
+    Next,
+    Info(String),
+    SelectFrom(RandomCollection),
+    SelectItem(Item),
+    GetSelectedItem,
     EnemySelected(Enemy),
 }
 
@@ -171,6 +186,7 @@ impl Default for App {
 }
 
 impl App {
+    // ゲーム開始時の処理
     fn new() -> Self {
         let dir = std::env::var("RUSTERN_DIR").unwrap();
         let file_name = "example.yml";
@@ -179,16 +195,58 @@ impl App {
         let master_data: MasterData = serde_yaml::from_str(&yaml_contents).unwrap();
 
         Self {
-            master_data: master_data,
-            system_info: "This is system info".to_string(),
-            choice_info: "This is choice info".to_string(),
+             scenario: vec![
+                 Message::Info("You are the hero! Let's kill king of devil".into()),
+                 Message::Info("I'll give an item for you.".into()),
+                 Message::SelectFrom(RandomItemCollection(Rarity::new(1), 2)),
+                 Message::GetSelectedItem,
+            ],
+            scenario_idx: 0,
+            master_data,
+            system_info: "You are the hero! Let's kill king of devil!".into(),
+            choice_info: "".to_string(),
+            items_for_get: vec![],
+            owned_items: vec![],
+            selected_item: None,
+            enemies_for_attack: vec![],
             selected_enemy: None,
         }
     }
     fn update(&mut self, message: Message) {
         match message {
+            Message::Next => {
+                self.scenario_idx += 1;
+                if let Some(msg) = self.scenario.get(self.scenario_idx) {
+                    self.update(msg.clone());
+                }
+            }
+            Message::Info(info) => {
+                self.system_info = info;
+            }
+            Message::SelectFrom(random_collection) => {
+                match random_collection {
+                    RandomItemCollection(rarity, count) => {
+                        let candidates: Vec<_> = self
+                            .master_data
+                            .items
+                            .items
+                            .iter()
+                            .filter(|item| item.rarity.value <= rarity.value)
+                            .take(count as usize)
+                            .cloned()
+                            .collect();
+                        self.items_for_get = candidates;
+                    }
+                }
+            }
+            Message::SelectItem(item) => {
+                self.selected_item = Some(item);
+            }
             Message::EnemySelected(enemy) => {
                 self.choice_info = enemy.name.clone();
+            }
+            Message::GetSelectedItem => {
+                self.system_info = "You got an item: ".to_owned() + self.selected_item.clone().unwrap().name.as_str();
             }
         }
     }
@@ -196,18 +254,29 @@ impl App {
     fn view(&self) -> Column<Message> {
         let mut column = Column::new();
         let system_info = Text::new(self.system_info.as_str());
-        let choice_info = Text::new(self.choice_info.as_str());
         column = column.push(system_info);
-        column = column.push(choice_info);
-        for enemy in &self.master_data.enemies.enemies {
-            column = column.push(enemy.name.as_str());
+        if self.enemies_for_attack.iter().count() > 0 {
+            let enemy_candidates = iced::widget::pick_list(
+                self.enemies_for_attack.clone(),
+                self.selected_enemy.clone(),
+                Message::EnemySelected
+            );
+            column = column.push(enemy_candidates);
         }
-        let pick_list = pick_list(
-            self.master_data.enemies.enemies.clone(),
-            self.selected_enemy.clone(),
-            Message::EnemySelected
-        );
-        column = column.push(pick_list);
+        if self.items_for_get.iter().count() > 0 {
+            let item_candidates = iced::widget::pick_list(
+                self.items_for_get.clone(),
+                self.selected_item.clone(),
+                Message::SelectItem,
+            );
+            column = column.push(item_candidates);
+        }
+        column = column.push(iced::widget::button("Next").on_press(Message::Next));
         column.into()
     }
+}
+
+#[derive(Debug, Clone)]
+enum RandomCollection {
+    RandomItemCollection(Rarity, i8)
 }

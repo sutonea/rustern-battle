@@ -16,12 +16,12 @@ items:
         percentage: 0.25
     - name: "Mana Elixir"
       rarity:
-        value: 2
+        value: 1
       effect: !Heal
         percentage: 0.50
     - name: "Fire Bomb"
       rarity:
-        value: 3
+        value: 1
       effect: !Attack
         - percentage: 0.8
         - value: 50.0
