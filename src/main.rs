@@ -193,17 +193,18 @@ impl App {
         let file_path = format!("{}/{}", dir, file_name);
         let yaml_contents = std::fs::read_to_string(file_path).unwrap();
         let master_data: MasterData = serde_yaml::from_str(&yaml_contents).unwrap();
+        let first_message: String = "You are the hero! Let's kill king of devil".into();
 
         Self {
              scenario: vec![
-                 Message::Info("You are the hero! Let's kill king of devil".into()),
+                 Message::Info(first_message.clone()),
                  Message::Info("I'll give an item for you.".into()),
                  Message::SelectFrom(RandomItemCollection(Rarity::new(1), 2)),
                  Message::GetSelectedItem,
             ],
             scenario_idx: 0,
             master_data,
-            system_info: "You are the hero! Let's kill king of devil!".into(),
+            system_info: first_message.clone(),
             choice_info: "".to_string(),
             items_for_get: vec![],
             owned_items: vec![],
