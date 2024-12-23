@@ -202,8 +202,8 @@ impl App {
     fn new() -> Self {
         let dir = std::env::var("RUSTERN_DIR").unwrap();
         let file_name = "example.yml";
-        let file_path = format!("{}/{}", dir, file_name);
-        let yaml_contents = std::fs::read_to_string(file_path).unwrap();
+        let file_path = std::path::PathBuf::from(format!("{}/{}", dir, file_name));
+        let yaml_contents = std::fs::read_to_string(&file_path).unwrap();
         let master_data: MasterData = serde_yaml::from_str(&yaml_contents).unwrap();
         let first_message: String = "You are the hero! Let's kill king of devil".into();
 
