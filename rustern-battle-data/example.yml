@@ -34,12 +34,24 @@ items:
 
 skills:
   skills:
+    - name: "ダッシュづき"
+      rarity:
+        value: 1
+      effect: !Attack
+        - percentage: 0.8
+        - value: 40.0
     - name: "きりつけ"
       rarity:
         value: 1
       effect: !Attack
         - percentage: 0.9
         - value: 30.0
+    - name: "ジャンプぎり"
+      rarity:
+        value: 1
+      effect: !Attack
+        - percentage: 0.3
+        - value: 90.0
     - name: "こおりのやり"
       rarity:
         value: 2
