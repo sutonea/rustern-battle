@@ -64,6 +64,17 @@ impl Rarity {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+struct Level {
+    value: u8
+}
+
+impl Level {
+    fn new(value: u8) -> Level {
+        Level { value }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct Skills {
     skills: Vec<Skill>
