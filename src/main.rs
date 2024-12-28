@@ -185,9 +185,9 @@ impl std::fmt::Display for Enemy {
 enum Message {
     Next,
     Info(String),
-    SelectFrom(RandomCollection),
-    SelectItem(Item),
-    GetSelectedItem,
+    UpdateItemSelector(RandomCollection),
+    WaitingSelectItemByUser(Item),
+    GiveSelectedItemForUser,
     EnemySelected(Enemy),
 }
 
@@ -211,8 +211,8 @@ impl App {
              scenario: vec![
                  Message::Info(first_message.clone()),
                  Message::Info("I'll give an item for you.".into()),
-                 Message::SelectFrom(RandomItemCollection(Rarity::new(1), 2)),
-                 Message::GetSelectedItem,
+                 Message::UpdateItemSelector(RandomItemCollection(Rarity::new(1), 2)),
+                 Message::GiveSelectedItemForUser,
             ],
             scenario_idx: 0,
             master_data,
@@ -236,7 +236,7 @@ impl App {
             Message::Info(info) => {
                 self.system_info = info;
             }
-            Message::SelectFrom(random_collection) => {
+            Message::UpdateItemSelector(random_collection) => {
                 match random_collection {
                     RandomItemCollection(rarity, count) => {
                         let candidates: Vec<_> = self
@@ -252,13 +252,13 @@ impl App {
                     }
                 }
             }
-            Message::SelectItem(item) => {
+            Message::WaitingSelectItemByUser(item) => {
                 self.selected_item = Some(item);
             }
             Message::EnemySelected(enemy) => {
                 self.choice_info = enemy.name.clone();
             }
-            Message::GetSelectedItem => { // TODO : この処理のテストコードを追加
+            Message::GiveSelectedItemForUser => { // TODO : この処理のテストコードを追加
                 if let Some(selected_item) = self.selected_item.clone() {
                     if let Some(existing_item) = self.owned_items.iter_mut().find(|container| container.item == selected_item) {
                         existing_item.amount += 1;
@@ -294,7 +294,7 @@ impl App {
             let item_candidates = iced::widget::pick_list(
                 self.items_for_get.clone(),
                 self.selected_item.clone(),
-                Message::SelectItem,
+                Message::WaitingSelectItemByUser,
             );
             column = column.push(item_candidates);
         }
@@ -325,7 +325,7 @@ mod tests {
         app.owned_items = vec![];
 
         // 処理を実行
-        app.update(Message::GetSelectedItem);
+        app.update(Message::GiveSelectedItemForUser);
 
         // 結果を検証
         assert_eq!(app.owned_items.len(), 1);
@@ -335,7 +335,7 @@ mod tests {
 
         // アイテムを追加して再度テスト
         app.selected_item = Some(test_item.clone());
-        app.update(Message::GetSelectedItem);
+        app.update(Message::GiveSelectedItemForUser);
         assert_eq!(app.owned_items.len(), 1); // 所持アイテム数は変わらない
         assert_eq!(app.owned_items[0].amount, 2); // 同じアイテムの数が増える
     }
@@ -348,7 +348,7 @@ mod tests {
         app.owned_items = vec![];
 
         // 処理を実行
-        app.update(Message::GetSelectedItem);
+        app.update(Message::GiveSelectedItemForUser);
 
         // 結果を検証
         assert_eq!(app.owned_items.len(), 0);
