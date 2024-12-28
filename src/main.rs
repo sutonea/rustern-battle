@@ -1,3 +1,4 @@
+use rand::seq::{IteratorRandom, SliceRandom};
 use iced::Font;
 use iced::widget::{Column, Text};
 use serde::Deserialize;
@@ -46,12 +47,17 @@ struct Items {
 
 impl Items {
     fn random_pick(&self, rarity: Rarity, count: usize) -> Vec<Item> {
-        self.items
-        .iter()
-        .filter(|item| item.rarity.value <= rarity.value)
-        .take(count as usize)
-        .cloned()
-        .collect()
+        let filtered: Vec<Item> = self.items
+            .iter()
+            .filter(|item| item.rarity == rarity)
+            .cloned()
+            .collect();
+
+        let mut rng = rand::thread_rng();
+        filtered
+            .choose_multiple(&mut rng, count)
+            .cloned()
+            .collect()
     }
 }
 
@@ -111,11 +117,17 @@ struct Skills {
 }
 
 impl Skills {
+
     fn random_pick(&self, rarity: Rarity, count: usize) -> Vec<Skill> {
-        self.skills
+        let filtered: Vec<Skill> = self.skills
             .iter()
-            .filter(|skill| skill.rarity.value <= rarity.value)
-            .take(count as usize)
+            .filter(|skill| skill.rarity == rarity)
+            .cloned()
+            .collect();
+
+        let mut rng = rand::thread_rng();
+        filtered
+            .choose_multiple(&mut rng, count)
             .cloned()
             .collect()
     }
@@ -215,14 +227,21 @@ struct Enemies {
 }
 
 impl Enemies {
+
     fn random_pick(&self, level: Level, count: usize) -> Vec<Enemy> {
-        self.enemies
+        let filtered: Vec<Enemy> = self.enemies
             .iter()
-            .filter(|enemy| enemy.level.value <= level.value)
-            .take(count as usize)
+            .filter(|enemy| enemy.level == level)
+            .cloned()
+            .collect();
+
+        let mut rng = rand::thread_rng();
+        filtered
+            .choose_multiple(&mut rng, count)
             .cloned()
             .collect()
     }
+
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -289,7 +308,7 @@ impl App {
         let file_path = std::path::PathBuf::from(format!("{}/{}", dir, file_name));
         let yaml_contents = std::fs::read_to_string(&file_path).unwrap();
         let master_data: MasterData = serde_yaml::from_str(&yaml_contents).unwrap();
-        let usable_skills = master_data.skills.random_pick(Rarity{ value: 5}, 2);
+        let usable_skills = master_data.skills.random_pick(Rarity{ value: 1}, 2);
 
         let first_message: String = "おうさま：おお　ゆうしゃよ　まおうを　たおしに　ゆくのじゃ".into();
 
