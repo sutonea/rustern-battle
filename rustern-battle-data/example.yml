@@ -35,16 +35,22 @@ items:
 skills:
   skills:
     - name: "きりつけ"
+      rarity:
+        value: 1
       effect: !Attack
         - percentage: 0.9
         - value: 30.0
     - name: "こおりのやり"
+      rarity:
+        value: 2
       effect: !AttackAndAddSpecialStatusToEnemy
         - percentage: 0.7
         - value: 20.0
         - percentage: 0.5
         - Frozen
     - name: "どくのくも"
+      rarity:
+        value: 3
       effect: !AddSpecialStatusToEnemy
         - percentage: 0.6
         - Poisoned

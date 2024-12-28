@@ -111,6 +111,7 @@ struct Skills {
 #[derive(Debug, Clone, Deserialize)]
 struct Skill {
     name: String,
+    rarity: Rarity,
     effect: Effect
 }
 
