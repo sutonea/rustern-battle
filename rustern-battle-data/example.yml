@@ -1,10 +1,16 @@
 enemies:
   enemies:
     - name: "Goblin"
+      level:
+        value: 1
       hp: 30.0
     - name: "Troll"
+      level:
+        value: 2
       hp: 120.0
     - name: "Dragon"
+      level:
+        value: 3
       hp: 300.0
 
 items:

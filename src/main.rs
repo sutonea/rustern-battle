@@ -183,6 +183,7 @@ struct Enemies {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Enemy {
     name: String,
+    level: Level,
     hp: f32,
 }
 
