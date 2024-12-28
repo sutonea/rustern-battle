@@ -9,7 +9,15 @@ pub fn main() -> iced::Result {
         .run()
 }
 
+enum AppMode {
+    Scenario,
+    Battle,
+}
+
 struct App {
+    //状態
+    app_mode: AppMode,
+    //データ
     scenario: Vec<Message>,
     scenario_idx: usize,
     master_data: MasterData,
@@ -18,8 +26,13 @@ struct App {
     items_for_get: Vec<Item>,
     owned_items: Vec<ItemContainer>,
     selected_item: Option<Item>,
-    enemies_for_attack: Vec<Enemy>,
-    selected_enemy: Option<Enemy>
+    encountered_enemies: Vec<Enemy>,
+    selected_enemy: Option<Enemy>,
+    selected_battle_operation: Option<BattleOperation>,
+    //表示制御
+    show_items_for_pick: bool,
+    show_encountered_enemies: bool,
+    show_battle_operations: bool,
 }
 
 
@@ -208,9 +221,34 @@ enum Message {
     Next,
     Info(String),
     UpdateSelectorAndInfo(RandomCollection, String),
+    ShowItemsForPick,
+    HideItemsForPick,
+    ShowEncounteredEnemies,
+    HideEncounteredEnemies,
     WaitingSelectItemByUser(Item),
     GiveSelectedItemForUser,
+    StartBattle,
+    DispatchBattleOperation(BattleOperation),
     EnemySelected(Enemy),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum BattleOperation {
+    UseSkill,
+    UseItem,
+}
+
+impl std::fmt::Display for BattleOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            BattleOperation::UseSkill => {
+                write!(f, "スキルをつかう")
+            }
+            BattleOperation::UseItem => {
+                write!(f, "アイテムをつかう")
+            }
+        }
+    }
 }
 
 impl Default for App {
@@ -230,14 +268,18 @@ impl App {
         let first_message: String = "おうさま：おお　ゆうしゃよ　まおうを　たおしに　ゆくのじゃ".into();
 
         Self {
+            app_mode: AppMode::Scenario,
+             //データ
              scenario: vec![
                  Message::Info(first_message.clone()),
                  Message::Info("おうさま：アイテムを　ひとつ　さずけよう。".into()),
                  Message::UpdateSelectorAndInfo(RandomItemCollection(Rarity::new(1), 2), "どの　アイテムを　もらう？".into()),
+                 Message::ShowItemsForPick,
                  Message::GiveSelectedItemForUser,
                  Message::Info("さあ　まおうを　たおす　たびの　はじまりだ。".into()),
                  Message::Info("てきが　あらわれた！".into()),
-                 Message::UpdateSelectorAndInfo(RandomEnemyCollection(Level::new(1), 1), "だれを　こうげきする？".into()),
+                 Message::UpdateSelectorAndInfo(RandomEnemyCollection(Level::new(1), 1), "どうする？".into()),
+                 Message::StartBattle,
             ],
             scenario_idx: 0,
             master_data,
@@ -246,8 +288,13 @@ impl App {
             items_for_get: vec![],
             owned_items: vec![],
             selected_item: None,
-            enemies_for_attack: vec![],
+            encountered_enemies: vec![],
             selected_enemy: None,
+            selected_battle_operation: None,
+            //表示制御
+            show_items_for_pick: false,
+            show_encountered_enemies: false,
+            show_battle_operations: false,
         }
     }
     fn update(&mut self, message: Message) {
@@ -258,6 +305,18 @@ impl App {
                     self.update(msg.clone());
                 }
             }
+            Message::ShowItemsForPick => {
+                self.show_items_for_pick = true;
+            }
+            Message::HideItemsForPick => {
+                self.show_items_for_pick = false;
+            }
+            Message::ShowEncounteredEnemies => {
+                self.show_encountered_enemies = true;
+            }
+            Message::HideEncounteredEnemies => {
+                self.show_encountered_enemies = false;
+            }
             Message::Info(info) => {
                 self.system_info = info;
             }
@@ -267,11 +326,11 @@ impl App {
                         self.items_for_get = self.master_data.items.random_pick(rarity, count as usize);
                     }
                     RandomEnemyCollection(level, count) => {
-                        self.enemies_for_attack = self.master_data.enemies.random_pick(level, count as usize);
-
+                        self.encountered_enemies = self.master_data.enemies.random_pick(level, count as usize);
                     }
                 };
                 self.system_info = info;
+                self.update(Message::Next);
             }
             Message::WaitingSelectItemByUser(item) => {
                 self.selected_item = Some(item);
@@ -295,6 +354,13 @@ impl App {
                 } else {
                     self.system_info = "アイテムが　えらばれて　いない。".to_string();
                 }
+                self.update(Message::HideItemsForPick);
+            }
+            Message::StartBattle => {
+                self.show_battle_operations = true;
+            }
+            Message::DispatchBattleOperation(operation) => {
+                self.system_info = format!("{}", operation);
             }
         }
     }
@@ -303,21 +369,29 @@ impl App {
         let mut column = Column::new();
         let system_info = Text::new(self.system_info.as_str());
         column = column.push(system_info);
-        if self.enemies_for_attack.iter().count() > 0 {
+        if self.show_encountered_enemies {
             let enemy_candidates = iced::widget::pick_list(
-                self.enemies_for_attack.clone(),
+                self.encountered_enemies.clone(),
                 self.selected_enemy.clone(),
                 Message::EnemySelected
             );
             column = column.push(enemy_candidates);
         }
-        if self.items_for_get.iter().count() > 0 {
+        if self.show_items_for_pick {
             let item_candidates = iced::widget::pick_list(
                 self.items_for_get.clone(),
                 self.selected_item.clone(),
                 Message::WaitingSelectItemByUser,
             );
             column = column.push(item_candidates);
+        }
+
+        if self.show_battle_operations {
+            column = column.push(iced::widget::pick_list(
+                vec![BattleOperation::UseSkill, BattleOperation::UseItem],
+                self.selected_battle_operation.clone(),
+                Message::DispatchBattleOperation
+            ));
         }
         column = column.push(iced::widget::button("つぎへ").on_press(Message::Next));
         column.into()
