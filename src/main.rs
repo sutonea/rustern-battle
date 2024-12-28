@@ -1,9 +1,12 @@
+use iced::Font;
 use iced::widget::{Column, Text};
 use serde::Deserialize;
 use crate::RandomCollection::{RandomEnemyCollection, RandomItemCollection};
 
 pub fn main() -> iced::Result {
-    iced::run("Rustern-battle", App::update, App::view)
+    iced::application("Rustern-battle", App::update, App::view)
+        .default_font(Font::with_name("ヒラギノ角ゴシック"))
+        .run()
 }
 
 struct App {
@@ -224,7 +227,7 @@ impl App {
         let file_path = std::path::PathBuf::from(format!("{}/{}", dir, file_name));
         let yaml_contents = std::fs::read_to_string(&file_path).unwrap();
         let master_data: MasterData = serde_yaml::from_str(&yaml_contents).unwrap();
-        let first_message: String = "You are the hero! Let's kill king of devil".into();
+        let first_message: String = "テスト".into();
 
         Self {
              scenario: vec![
