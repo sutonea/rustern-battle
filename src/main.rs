@@ -47,7 +47,7 @@ struct ItemContainer {
 
 impl std::fmt::Display for ItemContainer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{} (stock: {})", self.item.name.clone(), self.amount)
+        write!(f, "{} (残り: {}個)", self.item.name.clone(), self.amount)
     }
 }
 
@@ -227,16 +227,17 @@ impl App {
         let file_path = std::path::PathBuf::from(format!("{}/{}", dir, file_name));
         let yaml_contents = std::fs::read_to_string(&file_path).unwrap();
         let master_data: MasterData = serde_yaml::from_str(&yaml_contents).unwrap();
-        let first_message: String = "テスト".into();
+        let first_message: String = "おうさま：おお　ゆうしゃよ　まおうを　たおしに　ゆくのじゃ".into();
 
         Self {
              scenario: vec![
                  Message::Info(first_message.clone()),
-                 Message::Info("I'll give an item for you.".into()),
-                 Message::UpdateSelectorAndInfo(RandomItemCollection(Rarity::new(1), 2), "Select an item.".into()),
+                 Message::Info("おうさま：アイテムを　ひとつ　さずけよう。".into()),
+                 Message::UpdateSelectorAndInfo(RandomItemCollection(Rarity::new(1), 2), "どの　アイテムを　もらう？".into()),
                  Message::GiveSelectedItemForUser,
-                 Message::Info("Encountered the enemies!".into()),
-                 Message::UpdateSelectorAndInfo(RandomEnemyCollection(Level::new(1), 1), "Select an enemy to attack.".into()),
+                 Message::Info("さあ　まおうを　たおす　たびの　はじまりだ。".into()),
+                 Message::Info("てきが　あらわれた！".into()),
+                 Message::UpdateSelectorAndInfo(RandomEnemyCollection(Level::new(1), 1), "だれを　こうげきする？".into()),
             ],
             scenario_idx: 0,
             master_data,
@@ -288,11 +289,11 @@ impl App {
                             amount: 1,
                         });
                     }
-                    self.system_info = format!("You got an item: {}", selected_item.name);
+                    self.system_info = format!("{}　を　てにいれた！", selected_item.name);
                     self.selected_item = None;
                     self.items_for_get = vec![];
                 } else {
-                    self.system_info = "No item selected.".to_string();
+                    self.system_info = "アイテムが　えらばれて　いない。".to_string();
                 }
             }
         }
@@ -318,7 +319,7 @@ impl App {
             );
             column = column.push(item_candidates);
         }
-        column = column.push(iced::widget::button("Next").on_press(Message::Next));
+        column = column.push(iced::widget::button("つぎへ").on_press(Message::Next));
         column.into()
     }
 }
@@ -338,7 +339,7 @@ mod tests {
         // テスト用の初期データを作成
         let mut app = App::new();
         let test_item = Item {
-            name: "Test Item".to_string(),
+            name: "ポーション".to_string(),
             rarity: Rarity::new(1),
             effect: Effect::Heal(Ratio { percentage:0.1 }),
         };
@@ -352,7 +353,7 @@ mod tests {
         assert_eq!(app.owned_items.len(), 1);
         assert_eq!(app.owned_items[0].item, test_item);
         assert_eq!(app.owned_items[0].amount, 1);
-        assert_eq!(app.system_info, format!("You got an item: {}", test_item.name));
+        assert_eq!(app.system_info, format!("{}　を　てにいれた！", test_item.name));
 
         // アイテムを追加して再度テスト
         app.selected_item = Some(test_item.clone());
@@ -373,6 +374,6 @@ mod tests {
 
         // 結果を検証
         assert_eq!(app.owned_items.len(), 0);
-        assert_eq!(app.system_info, "No item selected.");
+        assert_eq!(app.system_info, "アイテムが　えらばれて　いない。");
     }
 }
