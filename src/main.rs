@@ -32,11 +32,13 @@ struct App {
     selected_enemy: Option<Enemy>,
     selected_battle_operation: Option<BattleOperation>,
     selected_use_skill: Option<Skill>,
+    selected_use_item: Option<ItemContainer>,
     //表示制御
     show_items_for_pick: bool,
     show_encountered_enemies: bool,
     show_battle_operations: bool,
     show_usable_skills: bool,
+    show_owned_items: bool,
 }
 
 
@@ -61,7 +63,7 @@ impl Items {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 struct ItemContainer {
     item: Item,
     amount: usize,
@@ -272,6 +274,7 @@ enum Message {
     DispatchBattleOperation(BattleOperation),
     EnemySelected(Enemy),
     SelectUseSkill(Skill),
+    SelectUseItem(ItemContainer),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -335,14 +338,17 @@ impl App {
             owned_items: vec![],
             selected_item: None,
             encountered_enemies: vec![],
+            //選択されたオブジェクト
             selected_enemy: None,
             selected_battle_operation: None,
             selected_use_skill: None,
+            selected_use_item: None,
             //表示制御
             show_items_for_pick: false,
             show_encountered_enemies: false,
             show_battle_operations: false,
             show_usable_skills: false,
+            show_owned_items: false,
         }
     }
     fn update(&mut self, message: Message) {
@@ -414,11 +420,17 @@ impl App {
                         self.show_usable_skills = true;
                         self.show_battle_operations = false;
                     }
-                    BattleOperation::UseItem => {}
+                    BattleOperation::UseItem => {
+                        self.show_owned_items = true;
+                        self.show_battle_operations = false;
+                    }
                 }
             }
             Message::SelectUseSkill(skill) => {
                 self.selected_use_skill = Some(skill);
+            }
+            Message::SelectUseItem(itemContainer) => {
+                self.selected_use_item = Some(itemContainer);
             }
         }
     }
@@ -456,6 +468,13 @@ impl App {
                 self.usable_skills.clone(),
                 self.selected_use_skill.clone(),
                 Message::SelectUseSkill
+            ))
+        }
+        if self.show_owned_items {
+            column = column.push(iced::widget::pick_list(
+                self.owned_items.clone(),
+                self.selected_use_item.clone(),
+                Message::SelectUseItem
             ))
         }
         column = column.push(iced::widget::button("つぎへ").on_press(Message::Next));
