@@ -23,16 +23,19 @@ struct App {
     master_data: MasterData,
     system_info: String,
     choice_info: String,
+    usable_skills: Vec<Skill>,
     items_for_get: Vec<Item>,
     owned_items: Vec<ItemContainer>,
     selected_item: Option<Item>,
     encountered_enemies: Vec<Enemy>,
     selected_enemy: Option<Enemy>,
     selected_battle_operation: Option<BattleOperation>,
+    selected_use_skill: Option<Skill>,
     //表示制御
     show_items_for_pick: bool,
     show_encountered_enemies: bool,
     show_battle_operations: bool,
+    show_usable_skills: bool,
 }
 
 
@@ -107,12 +110,29 @@ struct Skills {
     skills: Vec<Skill>
 }
 
+impl Skills {
+    fn random_pick(&self, rarity: Rarity, count: usize) -> Vec<Skill> {
+        self.skills
+            .iter()
+            .filter(|skill| skill.rarity.value <= rarity.value)
+            .take(count as usize)
+            .cloned()
+            .collect()
+    }
+}
+
 #[allow(dead_code)]
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq)]
 struct Skill {
     name: String,
     rarity: Rarity,
     effect: Effect
+}
+
+impl std::fmt::Display for Skill {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -186,6 +206,7 @@ enum SpecialStatus {
 struct MasterData {
     enemies: Enemies,
     items: Items,
+    skills: Skills,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -231,6 +252,7 @@ enum Message {
     StartBattle,
     DispatchBattleOperation(BattleOperation),
     EnemySelected(Enemy),
+    SelectUseSkill(Skill),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -261,15 +283,18 @@ impl Default for App {
 impl App {
     // ゲーム開始時の処理
     fn new() -> Self {
+        // マスタデータ読み込み
         let dir = std::env::var("RUSTERN_DIR").unwrap();
         let file_name = "example.yml";
         let file_path = std::path::PathBuf::from(format!("{}/{}", dir, file_name));
         let yaml_contents = std::fs::read_to_string(&file_path).unwrap();
         let master_data: MasterData = serde_yaml::from_str(&yaml_contents).unwrap();
+        let usable_skills = master_data.skills.random_pick(Rarity{ value: 5}, 2);
+
         let first_message: String = "おうさま：おお　ゆうしゃよ　まおうを　たおしに　ゆくのじゃ".into();
 
         Self {
-            app_mode: AppMode::Scenario,
+             app_mode: AppMode::Scenario,
              //データ
              scenario: vec![
                  Message::Info(first_message.clone()),
@@ -286,16 +311,19 @@ impl App {
             master_data,
             system_info: first_message.clone(),
             choice_info: "".to_string(),
+            usable_skills,
             items_for_get: vec![],
             owned_items: vec![],
             selected_item: None,
             encountered_enemies: vec![],
             selected_enemy: None,
             selected_battle_operation: None,
+            selected_use_skill: None,
             //表示制御
             show_items_for_pick: false,
             show_encountered_enemies: false,
             show_battle_operations: false,
+            show_usable_skills: false,
         }
     }
     fn update(&mut self, message: Message) {
@@ -362,6 +390,16 @@ impl App {
             }
             Message::DispatchBattleOperation(operation) => {
                 self.system_info = format!("{}", operation);
+                match operation {
+                    BattleOperation::UseSkill => {
+                        self.show_usable_skills = true;
+                        self.show_battle_operations = false;
+                    }
+                    BattleOperation::UseItem => {}
+                }
+            }
+            Message::SelectUseSkill(skill) => {
+                self.selected_use_skill = Some(skill);
             }
         }
     }
@@ -393,6 +431,13 @@ impl App {
                 self.selected_battle_operation.clone(),
                 Message::DispatchBattleOperation
             ));
+        }
+        if self.show_usable_skills {
+            column = column.push(iced::widget::pick_list(
+                self.usable_skills.clone(),
+                self.selected_use_skill.clone(),
+                Message::SelectUseSkill
+            ))
         }
         column = column.push(iced::widget::button("つぎへ").on_press(Message::Next));
         column.into()
