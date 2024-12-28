@@ -1,5 +1,4 @@
-use iced::widget::{button, column, text, Column, Text};
-use iced::Center;
+use iced::widget::{Column, Text};
 use serde::Deserialize;
 use crate::RandomCollection::{RandomEnemyCollection, RandomItemCollection};
 
@@ -75,11 +74,13 @@ impl Level {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 struct Skills {
     skills: Vec<Skill>
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 struct Skill {
     name: String,
@@ -107,9 +108,10 @@ enum Effect {
     ),
 }
 
-fn useSkill(skillType: Effect) {
-    match skillType {
-        Effect::Attack(prob, pow) => {
+#[allow(dead_code)]
+fn use_skill(skill_type: Effect) {
+    match skill_type {
+        Effect::Attack(_, _) => {
         }
         Effect::Heal(_) => {
         }
@@ -125,21 +127,9 @@ struct Power {
     value: f32,
 }
 
-impl Power {
-    fn new(value: f32) -> Self {
-        Self { value }
-    }
-}
-
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 struct Probability {
     percentage: f32,
-}
-
-impl Probability {
-    fn new(percentage: f32) -> Probability {
-        Probability { percentage }
-    }
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -147,12 +137,7 @@ struct Ratio {
     percentage: f32,
 }
 
-impl Ratio {
-    fn new(percentage: f32) -> Ratio {
-        Ratio { percentage }
-    }
-}
-
+#[allow(dead_code)]
 enum AdditionalEffect {
     AddSpecialStatus(SpecialStatus, Probability),
     DrainHP(Ratio),
@@ -348,7 +333,7 @@ mod tests {
         let test_item = Item {
             name: "Test Item".to_string(),
             rarity: Rarity::new(1),
-            effect: Effect::Heal(Ratio::new(0.1)),
+            effect: Effect::Heal(Ratio { percentage:0.1 }),
         };
         app.selected_item = Some(test_item.clone());
         app.owned_items = vec![];
