@@ -25,6 +25,17 @@ struct Items {
     items: Vec<Item>
 }
 
+impl Items {
+    fn random_pick(&self, rarity: Rarity, count: usize) -> Vec<Item> {
+        self.items
+        .iter()
+        .filter(|item| item.rarity.value <= rarity.value)
+        .take(count as usize)
+        .cloned()
+        .collect()
+    }
+}
+
 #[derive(Debug)]
 struct ItemContainer {
     item: Item,
@@ -165,6 +176,17 @@ struct Enemies {
     enemies: Vec<Enemy>
 }
 
+impl Enemies {
+    fn random_pick(&self, level: Level, count: usize) -> Vec<Enemy> {
+        self.enemies
+            .iter()
+            .filter(|enemy| enemy.level.value <= level.value)
+            .take(count as usize)
+            .cloned()
+            .collect()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Enemy {
     name: String,
@@ -238,28 +260,10 @@ impl App {
             Message::UpdateSelectorAndInfo(random_collection, info) => {
                 match random_collection {
                     RandomItemCollection(rarity, count) => {
-                        let candidates: Vec<_> = self
-                            .master_data
-                            .items
-                            .items
-                            .iter()
-                            .filter(|item| item.rarity.value <= rarity.value)
-                            .take(count as usize)
-                            .cloned()
-                            .collect();
-                        self.items_for_get = candidates;
+                        self.items_for_get = self.master_data.items.random_pick(rarity, count as usize);
                     }
-                    RandomCollection::RandomEnemyCollection(level, count) => {
-                        let candidates: Vec<_> = self
-                            .master_data
-                            .enemies
-                            .enemies
-                            .iter()
-                            .filter(|item| item.level.value <= level.value)
-                            .take(count as usize)
-                            .cloned()
-                            .collect();
-                        self.enemies_for_attack = candidates;
+                    RandomEnemyCollection(level, count) => {
+                        self.enemies_for_attack = self.master_data.enemies.random_pick(level, count as usize);
 
                     }
                 };
@@ -271,7 +275,7 @@ impl App {
             Message::EnemySelected(enemy) => {
                 self.choice_info = enemy.name.clone();
             }
-            Message::GiveSelectedItemForUser => { // TODO : この処理のテストコードを追加
+            Message::GiveSelectedItemForUser => {
                 if let Some(selected_item) = self.selected_item.clone() {
                     if let Some(existing_item) = self.owned_items.iter_mut().find(|container| container.item == selected_item) {
                         existing_item.amount += 1;
