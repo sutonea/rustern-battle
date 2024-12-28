@@ -1,31 +1,31 @@
 enemies:
   enemies:
-    - name: "Goblin"
+    - name: "ゴブリン"
       level:
         value: 1
       hp: 30.0
-    - name: "Troll"
+    - name: "トロール"
       level:
         value: 2
       hp: 120.0
-    - name: "Dragon"
+    - name: "ドラゴン"
       level:
         value: 3
       hp: 300.0
 
 items:
   items:
-    - name: "Health Potion"
+    - name: "ポーション"
       rarity:
         value: 1
       effect: !Heal
         percentage: 0.25
-    - name: "Mana Elixir"
+    - name: "エリクサー"
       rarity:
         value: 1
       effect: !Heal
         percentage: 0.50
-    - name: "Fire Bomb"
+    - name: "ほのおのばくだん"
       rarity:
         value: 1
       effect: !Attack
@@ -34,17 +34,17 @@ items:
 
 skills:
   skills:
-    - name: "Sword Slash"
+    - name: "きりつけ"
       effect: !Attack
         - percentage: 0.9
         - value: 30.0
-    - name: "Ice Spear"
+    - name: "こおりのやり"
       effect: !AttackAndAddSpecialStatusToEnemy
         - percentage: 0.7
         - value: 20.0
         - percentage: 0.5
         - Frozen
-    - name: "Poison Cloud"
+    - name: "どくのくも"
       effect: !AddSpecialStatusToEnemy
         - percentage: 0.6
         - Poisoned
