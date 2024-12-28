@@ -197,7 +197,7 @@ impl std::fmt::Display for Enemy {
 enum Message {
     Next,
     Info(String),
-    UpdateSelector(RandomCollection),
+    UpdateSelectorAndInfo(RandomCollection, String),
     WaitingSelectItemByUser(Item),
     GiveSelectedItemForUser,
     EnemySelected(Enemy),
@@ -223,10 +223,10 @@ impl App {
              scenario: vec![
                  Message::Info(first_message.clone()),
                  Message::Info("I'll give an item for you.".into()),
-                 Message::UpdateSelector(RandomItemCollection(Rarity::new(1), 2)),
+                 Message::UpdateSelectorAndInfo(RandomItemCollection(Rarity::new(1), 2), "Select an item.".into()),
                  Message::GiveSelectedItemForUser,
                  Message::Info("Encountered the enemies!".into()),
-                 Message::UpdateSelector(RandomEnemyCollection(Level::new(1), 1)),
+                 Message::UpdateSelectorAndInfo(RandomEnemyCollection(Level::new(1), 1), "Select an enemy to attack.".into()),
             ],
             scenario_idx: 0,
             master_data,
@@ -250,7 +250,7 @@ impl App {
             Message::Info(info) => {
                 self.system_info = info;
             }
-            Message::UpdateSelector(random_collection) => {
+            Message::UpdateSelectorAndInfo(random_collection, info) => {
                 match random_collection {
                     RandomItemCollection(rarity, count) => {
                         let candidates: Vec<_> = self
@@ -277,7 +277,8 @@ impl App {
                         self.enemies_for_attack = candidates;
 
                     }
-                }
+                };
+                self.system_info = info;
             }
             Message::WaitingSelectItemByUser(item) => {
                 self.selected_item = Some(item);
