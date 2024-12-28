@@ -1,7 +1,7 @@
 use iced::widget::{button, column, text, Column, Text};
 use iced::Center;
 use serde::Deserialize;
-use crate::RandomCollection::RandomItemCollection;
+use crate::RandomCollection::{RandomEnemyCollection, RandomItemCollection};
 
 pub fn main() -> iced::Result {
     iced::run("Rustern-battle", App::update, App::view)
@@ -197,7 +197,7 @@ impl std::fmt::Display for Enemy {
 enum Message {
     Next,
     Info(String),
-    UpdateItemSelector(RandomCollection),
+    UpdateSelector(RandomCollection),
     WaitingSelectItemByUser(Item),
     GiveSelectedItemForUser,
     EnemySelected(Enemy),
@@ -223,8 +223,10 @@ impl App {
              scenario: vec![
                  Message::Info(first_message.clone()),
                  Message::Info("I'll give an item for you.".into()),
-                 Message::UpdateItemSelector(RandomItemCollection(Rarity::new(1), 2)),
+                 Message::UpdateSelector(RandomItemCollection(Rarity::new(1), 2)),
                  Message::GiveSelectedItemForUser,
+                 Message::Info("Encountered the enemies!".into()),
+                 Message::UpdateSelector(RandomEnemyCollection(Level::new(1), 1)),
             ],
             scenario_idx: 0,
             master_data,
@@ -248,7 +250,7 @@ impl App {
             Message::Info(info) => {
                 self.system_info = info;
             }
-            Message::UpdateItemSelector(random_collection) => {
+            Message::UpdateSelector(random_collection) => {
                 match random_collection {
                     RandomItemCollection(rarity, count) => {
                         let candidates: Vec<_> = self
@@ -261,6 +263,19 @@ impl App {
                             .cloned()
                             .collect();
                         self.items_for_get = candidates;
+                    }
+                    RandomCollection::RandomEnemyCollection(level, count) => {
+                        let candidates: Vec<_> = self
+                            .master_data
+                            .enemies
+                            .enemies
+                            .iter()
+                            .filter(|item| item.level.value <= level.value)
+                            .take(count as usize)
+                            .cloned()
+                            .collect();
+                        self.enemies_for_attack = candidates;
+
                     }
                 }
             }
@@ -317,7 +332,8 @@ impl App {
 
 #[derive(Debug, Clone)]
 enum RandomCollection {
-    RandomItemCollection(Rarity, i8)
+    RandomItemCollection(Rarity, i8),
+    RandomEnemyCollection(Level, i8),
 }
 
 #[cfg(test)]
