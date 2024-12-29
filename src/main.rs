@@ -10,14 +10,7 @@ pub fn main() -> iced::Result {
         .run()
 }
 
-enum AppMode {
-    Scenario,
-    Battle,
-}
-
 struct App {
-    //状態
-    app_mode: AppMode,
     //データ
     scenario: Vec<Message>,
     scenario_idx: usize,
@@ -34,11 +27,16 @@ struct App {
     selected_use_skill: Option<Skill>,
     selected_use_item: Option<ItemContainer>,
     //表示制御
+    page_of_battle_operation: Option<PageOfBattleOperation>,
+    show_next_button: bool,
     show_items_for_pick: bool,
     show_encountered_enemies: bool,
     show_battle_operations: bool,
     show_usable_skills: bool,
     show_owned_items: bool,
+    show_skill_confirm_button: bool,
+    show_back_to_select_skill_button: bool,
+    show_battle_operation_confirm_button: bool,
 }
 
 
@@ -271,7 +269,8 @@ enum Message {
     WaitingSelectItemByUser(Item),
     GiveSelectedItemForUser,
     StartBattle,
-    DispatchBattleOperation(BattleOperation),
+    SelectBattleOperation(BattleOperation),
+    DispatchBattleOperation,
     EnemySelected(Enemy),
     SelectUseSkill(Skill),
     SelectUseItem(ItemContainer),
@@ -279,17 +278,17 @@ enum Message {
 
 #[derive(Clone, Debug, PartialEq)]
 enum BattleOperation {
-    UseSkill,
-    UseItem,
+    ShowSkills,
+    ShowItemStocks,
 }
 
 impl std::fmt::Display for BattleOperation {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            BattleOperation::UseSkill => {
+            BattleOperation::ShowSkills => {
                 write!(f, "スキルをつかう")
             }
-            BattleOperation::UseItem => {
+            BattleOperation::ShowItemStocks => {
                 write!(f, "アイテムをつかう")
             }
         }
@@ -300,6 +299,14 @@ impl Default for App {
     fn default() -> Self {
         App::new()
     }
+}
+
+#[derive(Clone)]
+enum PageOfBattleOperation {
+    Root,
+    Skills,
+    ItemContainers,
+    Enemies,
 }
 
 impl App {
@@ -316,7 +323,6 @@ impl App {
         let first_message: String = "おうさま：おお　ゆうしゃよ　まおうを　たおしに　ゆくのじゃ".into();
 
         Self {
-             app_mode: AppMode::Scenario,
              //データ
              scenario: vec![
                  Message::Info(first_message.clone()),
@@ -344,14 +350,32 @@ impl App {
             selected_use_skill: None,
             selected_use_item: None,
             //表示制御
+            page_of_battle_operation: None,
+            show_next_button: true,
             show_items_for_pick: false,
             show_encountered_enemies: false,
             show_battle_operations: false,
             show_usable_skills: false,
             show_owned_items: false,
+            show_skill_confirm_button: false,
+            show_back_to_select_skill_button: false,
+            show_battle_operation_confirm_button: false,
         }
     }
+
+    fn hide_all_components(&mut self) {
+        self.show_next_button = false;
+        self.show_items_for_pick = false;
+        self.show_encountered_enemies = false;
+        self.show_battle_operations = false;
+        self.show_usable_skills = false;
+        self.show_owned_items = false;
+        self.show_skill_confirm_button = false;
+        self.show_back_to_select_skill_button = false;
+        self.show_battle_operation_confirm_button = false;
+    }
     fn update(&mut self, message: Message) {
+        self.hide_all_components();
         match message {
             Message::Next => {
                 self.scenario_idx += 1;
@@ -366,13 +390,16 @@ impl App {
                 self.show_items_for_pick = false;
             }
             Message::ShowEncounteredEnemies => {
+                self.system_info = "だれに　スキルを　つかう？".to_string();
                 self.show_encountered_enemies = true;
+                self.show_back_to_select_skill_button = true;
             }
             Message::HideEncounteredEnemies => {
                 self.show_encountered_enemies = false;
             }
             Message::Info(info) => {
                 self.system_info = info;
+                self.show_next_button = true;
             }
             Message::UpdateSelectorAndInfo(random_collection, info) => {
                 match random_collection {
@@ -388,6 +415,10 @@ impl App {
             }
             Message::WaitingSelectItemByUser(item) => {
                 self.selected_item = Some(item);
+                self.show_items_for_pick = true;
+                if self.selected_item.is_some() {
+                    self.show_next_button = true;
+                }
             }
             Message::EnemySelected(enemy) => {
                 self.choice_info = enemy.name.clone();
@@ -408,29 +439,41 @@ impl App {
                 } else {
                     self.system_info = "アイテムが　えらばれて　いない。".to_string();
                 }
-                self.update(Message::HideItemsForPick);
+                self.show_next_button = true;
             }
             Message::StartBattle => {
-                self.show_battle_operations = true;
+                self.page_of_battle_operation = Some(PageOfBattleOperation::Root);
             }
-            Message::DispatchBattleOperation(operation) => {
-                self.system_info = format!("{}", operation);
-                match operation {
-                    BattleOperation::UseSkill => {
-                        self.show_usable_skills = true;
-                        self.show_battle_operations = false;
+            Message::DispatchBattleOperation => {
+                match self.selected_battle_operation.clone() {
+                    Some(operation) => {
+                        self.system_info = format!("{}", operation);
+                        match operation {
+                            BattleOperation::ShowSkills => {
+                                self.page_of_battle_operation = Some(PageOfBattleOperation::Skills);
+                                self.system_info = "どのスキルをつかう？".to_string();
+                            }
+                            BattleOperation::ShowItemStocks => {
+                                self.page_of_battle_operation = Some(PageOfBattleOperation::ItemContainers);
+                                self.system_info = "どのアイテムをつかう？".to_string();
+                                self.show_owned_items = true;
+                            }
+                        }
                     }
-                    BattleOperation::UseItem => {
-                        self.show_owned_items = true;
-                        self.show_battle_operations = false;
-                    }
+                    None => {}
                 }
             }
             Message::SelectUseSkill(skill) => {
-                self.selected_use_skill = Some(skill);
+                self.selected_use_skill = Some(skill.clone());
+                self.page_of_battle_operation = Some(PageOfBattleOperation::Skills);
             }
-            Message::SelectUseItem(itemContainer) => {
-                self.selected_use_item = Some(itemContainer);
+            Message::SelectUseItem(item_container) => {
+                self.selected_use_item = Some(item_container);
+            }
+            Message::SelectBattleOperation(operation) => {
+                self.selected_battle_operation = Some(operation);
+                self.show_battle_operations = true;
+                self.show_battle_operation_confirm_button = true;
             }
         }
     }
@@ -439,45 +482,73 @@ impl App {
         let mut column = Column::new();
         let system_info = Text::new(self.system_info.as_str());
         column = column.push(system_info);
-        if self.show_encountered_enemies {
-            let enemy_candidates = iced::widget::pick_list(
-                self.encountered_enemies.clone(),
-                self.selected_enemy.clone(),
-                Message::EnemySelected
-            );
-            column = column.push(enemy_candidates);
-        }
-        if self.show_items_for_pick {
-            let item_candidates = iced::widget::pick_list(
-                self.items_for_get.clone(),
-                self.selected_item.clone(),
-                Message::WaitingSelectItemByUser,
-            );
-            column = column.push(item_candidates);
-        }
+        match self.page_of_battle_operation.clone() {
+            None => {
+                if self.show_items_for_pick {
+                    let item_candidates = iced::widget::pick_list(
+                        self.items_for_get.clone(),
+                        self.selected_item.clone(),
+                        Message::WaitingSelectItemByUser,
+                    );
+                    column = column.push(item_candidates);
+                }
 
-        if self.show_battle_operations {
-            column = column.push(iced::widget::pick_list(
-                vec![BattleOperation::UseSkill, BattleOperation::UseItem],
-                self.selected_battle_operation.clone(),
-                Message::DispatchBattleOperation
-            ));
+                if self.show_next_button {
+                    column = column.push(iced::widget::button("つぎへ").on_press(Message::Next));
+                }
+            }
+            Some(page_of_battle_operation) => {
+                match page_of_battle_operation {
+                    PageOfBattleOperation::Root => {
+                        column = column.push(iced::widget::pick_list(
+                            vec![BattleOperation::ShowSkills, BattleOperation::ShowItemStocks],
+                            self.selected_battle_operation.clone(),
+                            Message::SelectBattleOperation
+                        ));
+                        let mut confirm_button = iced::widget::button("この　こうどうで　よい");
+                        if let Some(_) = self.selected_battle_operation {
+                            confirm_button = confirm_button.on_press(Message::DispatchBattleOperation);
+                        }
+                        column = column.push(confirm_button);
+                    }
+                    PageOfBattleOperation::Skills => {
+                        column = column.push(iced::widget::pick_list(
+                            self.usable_skills.clone(),
+                            self.selected_use_skill.clone(),
+                            Message::SelectUseSkill
+                        ));
+
+                        column = column.push(
+                            iced::widget::button("このスキルをつかう"));
+
+                        let back = Message::StartBattle;
+                        column = column.push(
+                            iced::widget::button("もどる")
+                                .on_press(back));
+                    }
+                    PageOfBattleOperation::ItemContainers => {
+                        column = column.push(iced::widget::pick_list(
+                            self.owned_items.clone(),
+                            self.selected_use_item.clone(),
+                            Message::SelectUseItem
+                        ))
+                    }
+                    PageOfBattleOperation::Enemies => {
+                        let enemy_candidates =
+                            iced::widget::pick_list(
+                                self.encountered_enemies.clone(),
+                                self.selected_enemy.clone(),
+                                Message::EnemySelected);
+                        column = column.push(enemy_candidates);
+
+                        let back = Message::SelectBattleOperation(BattleOperation::ShowSkills);
+                        column = column.push(
+                            iced::widget::button("もどる")
+                                .on_press(back));
+                    }
+                }
+            }
         }
-        if self.show_usable_skills {
-            column = column.push(iced::widget::pick_list(
-                self.usable_skills.clone(),
-                self.selected_use_skill.clone(),
-                Message::SelectUseSkill
-            ))
-        }
-        if self.show_owned_items {
-            column = column.push(iced::widget::pick_list(
-                self.owned_items.clone(),
-                self.selected_use_item.clone(),
-                Message::SelectUseItem
-            ))
-        }
-        column = column.push(iced::widget::button("つぎへ").on_press(Message::Next));
         column.into()
     }
 }
