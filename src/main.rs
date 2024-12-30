@@ -1,8 +1,8 @@
-use rand::seq::{IteratorRandom, SliceRandom};
-use iced::Font;
-use iced::widget::{Column, Text};
-use serde::Deserialize;
 use crate::RandomCollection::{RandomEnemyCollection, RandomItemCollection};
+use iced::widget::{pick_list, Column, Text};
+use iced::{Element, Font};
+use rand::seq::{SliceRandom};
+use serde::Deserialize;
 
 pub fn main() -> iced::Result {
     iced::application("Rustern-battle", App::update, App::view)
@@ -10,42 +10,193 @@ pub fn main() -> iced::Result {
         .run()
 }
 
+mod use_skill_menu {
+    use crate::use_skill_menu::Message::OnSelectSkill;
+    use crate::{Rarity, Skill, Skills};
+    use iced::widget::{pick_list, Column};
+    use iced::Element;
+
+    pub(crate) struct App {
+        pub visible: bool,
+        skills: Skills,
+        skill: Option<Skill>,
+    }
+
+    #[derive(Debug, Clone)]
+    pub enum Message {
+        OnSelectSkill(Skill),
+        OnClickBack,
+    }
+
+    impl App {
+        pub fn new(skills: Skills, visible: bool) -> Self {
+            App {
+                visible,
+                skills,
+                skill: None,
+            }
+        }
+
+        pub fn update(&mut self, message: Message) {
+            match message {
+                OnSelectSkill(skill) => {
+                    self.skill = Some(skill);
+                }
+                Message::OnClickBack => {
+                    self.skill = None;
+                    self.visible = false;
+                }
+            }
+        }
+
+        pub fn view(&self) -> Element<Message> {
+            let mut column = Column::new();
+            if !self.visible {
+                return column.into();
+            }
+            column = column.push(
+                pick_list(
+                    self.skills.random_pick(Rarity { value: 1 }, 2),
+                    self.skill.clone(),
+                    OnSelectSkill
+                )
+
+            );
+            column.into()
+        }
+    }
+}
+
+// 戦闘操作メニュー。
+// 「スキルをつかう」または「アイテムをつかう」を選択可能。
+mod battle_operation_menu {
+    use iced::widget::{pick_list, Column};
+    use iced::Element;
+
+    #[derive(Debug, Clone)]
+    pub enum Message {
+        Initial,
+        OnSelectOperation(Operation),
+        OnClickNext,
+    }
+
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    pub enum Operation {
+        ShowSkills, // スキルをつかう
+        ShowItemContainers, // アイテムをつかう
+    }
+
+    impl std::fmt::Display for Operation {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            match self {
+                Operation::ShowSkills => {
+                    write!(f, "スキルをつかう")
+                }
+                Operation::ShowItemContainers => {
+                    write!(f, "アイテムをつかう")
+                }
+            }
+        }
+    }
+
+    pub struct App {
+
+        // この画面を表示するかどうか
+        pub visible: bool,
+
+        // 選択している操作
+        pub operation: Option<Operation>,
+    }
+
+    impl App {
+        pub fn new() -> Self {
+            App { visible: false, operation: None }
+        }
+
+        pub fn update(&mut self, message: Message) {
+            match message {
+                Message::Initial => {
+                    // 画面を表示する
+                    self.visible = true;
+                    // 何も選択していない状態にする
+                    self.operation = None;
+                }
+                Message::OnSelectOperation(operation) => {
+                    // 選択している操作を更新する
+                    self.operation = Some(operation);
+                }
+                Message::OnClickNext => {
+                    // 画面を非表示にする
+                    self.visible = false;
+                }
+            }
+        }
+
+        pub fn view(&self) -> Element<Message> {
+            let mut column = Column::new();
+
+            if !self.visible {
+                // 何も表示しない
+                return column.into();
+            }
+            column = column.push("どうする？");
+
+            // 操作を選択するドロップダウンリストの作成
+            let operations =
+                vec![
+                    Operation::ShowSkills,
+                    Operation::ShowItemContainers,
+                ];
+            column = column.push(pick_list(
+                operations,
+                self.operation,
+                Message::OnSelectOperation
+            ));
+
+            match self.operation {
+                Some(_operation) => {
+                    // 操作が選択されている場合、次へ進むためのボタンを表示する
+                    let confirm =
+                        iced::widget::button(
+                            "この　こうどうで　よい"
+                        ).on_press(Message::OnClickNext);
+                    column = column.push(confirm);
+                }
+                None => {}
+            }
+
+            column.into()
+        }
+    }
+}
+
 struct App {
+    //サブビュー
+    battle_operation_menu: battle_operation_menu::App,
+    use_skill_menu: use_skill_menu::App,
     //データ
     scenario: Vec<Message>,
     scenario_idx: usize,
     master_data: MasterData,
     system_info: String,
-    choice_info: String,
-    usable_skills: Vec<Skill>,
     items_for_get: Vec<Item>,
     owned_items: Vec<ItemContainer>,
     selected_item: Option<Item>,
     encountered_enemies: Vec<Enemy>,
-    selected_enemy: Option<Enemy>,
-    selected_battle_operation: Option<BattleOperation>,
-    selected_use_skill: Option<Skill>,
-    selected_use_item: Option<ItemContainer>,
     //表示制御
-    page_of_battle_operation: Option<PageOfBattleOperation>,
     show_next_button: bool,
     show_items_for_pick: bool,
-    show_encountered_enemies: bool,
-    show_battle_operations: bool,
-    show_usable_skills: bool,
-    show_owned_items: bool,
-    show_skill_confirm_button: bool,
-    show_back_to_select_skill_button: bool,
-    show_battle_operation_confirm_button: bool,
 }
 
 
 #[derive(Debug, Clone, Deserialize)]
 struct Items {
-    items: Vec<Item>
+    items: Vec<Item>,
 }
 
 impl Items {
+
+    //! 指定したレアリティのアイテムを、指定した数だけ持つ配列を返す
     fn random_pick(&self, rarity: Rarity, count: usize) -> Vec<Item> {
         let filtered: Vec<Item> = self.items
             .iter()
@@ -74,12 +225,11 @@ impl std::fmt::Display for ItemContainer {
 }
 
 
-
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Item {
     name: String,
     rarity: Rarity,
-    effect: Effect
+    effect: Effect,
 }
 
 impl std::fmt::Display for Item {
@@ -90,7 +240,7 @@ impl std::fmt::Display for Item {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Rarity {
-    value: u8
+    value: u8,
 }
 
 impl Rarity {
@@ -101,7 +251,7 @@ impl Rarity {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct Level {
-    value: u8
+    value: u8,
 }
 
 impl Level {
@@ -113,11 +263,12 @@ impl Level {
 #[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 struct Skills {
-    skills: Vec<Skill>
+    skills: Vec<Skill>,
 }
 
 impl Skills {
 
+    //! 指定したレベルのスキルを、指定した数だけ持つ配列を返す
     fn random_pick(&self, rarity: Rarity, count: usize) -> Vec<Skill> {
         let filtered: Vec<Skill> = self.skills
             .iter()
@@ -138,7 +289,7 @@ impl Skills {
 struct Skill {
     name: String,
     rarity: Rarity,
-    effect: Effect
+    effect: Effect,
 }
 
 impl std::fmt::Display for Skill {
@@ -149,36 +300,32 @@ impl std::fmt::Display for Skill {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 enum Effect {
-    Attack(//攻撃
-        Probability,//成功率
-        Power//威力
+    Attack( //攻撃
+            Probability, //成功率
+            Power, //威力
     ),
-    Heal(//回復
-        Ratio//最大HPに対する回復割合
+    Heal( //回復
+          Ratio //最大HPに対する回復割合
     ),
-    AddSpecialStatusToEnemy(//敵に特殊状態を付与
-        Probability,//成功率
-        SpecialStatus //特殊状態
+    AddSpecialStatusToEnemy( //敵に特殊状態を付与
+                             Probability, //成功率
+                             SpecialStatus, //特殊状態
     ),
-    AttackAndAddSpecialStatusToEnemy(//敵に攻撃しつつ特殊状態を付与
-        Probability,//成功率
-        Power,//威力
-        Probability,//特殊状態付与確率
-        SpecialStatus//特殊状態
+    AttackAndAddSpecialStatusToEnemy( //敵に攻撃しつつ特殊状態を付与
+                                      Probability, //成功率
+                                      Power, //威力
+                                      Probability, //特殊状態付与確率
+                                      SpecialStatus, //特殊状態
     ),
 }
 
 #[allow(dead_code)]
 fn use_skill(skill_type: Effect) {
     match skill_type {
-        Effect::Attack(_, _) => {
-        }
-        Effect::Heal(_) => {
-        }
-        Effect::AddSpecialStatusToEnemy(_, _) => {
-        }
-        Effect::AttackAndAddSpecialStatusToEnemy(_, _, _, _) => {
-        }
+        Effect::Attack(_, _) => {}
+        Effect::Heal(_) => {}
+        Effect::AddSpecialStatusToEnemy(_, _) => {}
+        Effect::AttackAndAddSpecialStatusToEnemy(_, _, _, _) => {}
     }
 }
 
@@ -223,11 +370,11 @@ struct MasterData {
 
 #[derive(Debug, Clone, Deserialize)]
 struct Enemies {
-    enemies: Vec<Enemy>
+    enemies: Vec<Enemy>,
 }
 
 impl Enemies {
-
+    //! 指定したレベルの敵を、指定した数だけ持つ配列を返す
     fn random_pick(&self, level: Level, count: usize) -> Vec<Enemy> {
         let filtered: Vec<Enemy> = self.enemies
             .iter()
@@ -241,7 +388,6 @@ impl Enemies {
             .cloned()
             .collect()
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -264,16 +410,10 @@ enum Message {
     UpdateSelectorAndInfo(RandomCollection, String),
     ShowItemsForPick,
     HideItemsForPick,
-    ShowEncounteredEnemies,
-    HideEncounteredEnemies,
     WaitingSelectItemByUser(Item),
     GiveSelectedItemForUser,
-    StartBattle,
-    SelectBattleOperation(BattleOperation),
-    DispatchBattleOperation,
-    EnemySelected(Enemy),
-    SelectUseSkill(Skill),
-    SelectUseItem(ItemContainer),
+    BattleOperationMenu(battle_operation_menu::Message),
+    UseSkillMenu(use_skill_menu::Message),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -312,96 +452,74 @@ enum PageOfBattleOperation {
 impl App {
     // ゲーム開始時の処理
     fn new() -> Self {
-        // マスタデータ読み込み
+        // マスタデータ(YAML)読み込み
         let dir = std::env::var("RUSTERN_DIR").unwrap();
         let file_name = "example.yml";
         let file_path = std::path::PathBuf::from(format!("{}/{}", dir, file_name));
         let yaml_contents = std::fs::read_to_string(&file_path).unwrap();
         let master_data: MasterData = serde_yaml::from_str(&yaml_contents).unwrap();
-        let usable_skills = master_data.skills.random_pick(Rarity{ value: 1}, 2);
+        let usable_skills = master_data.skills.random_pick(Rarity { value: 1 }, 2);
 
+        // 初期化
         let first_message: String = "おうさま：おお　ゆうしゃよ　まおうを　たおしに　ゆくのじゃ".into();
-
+        let skills_for_menu: Skills = Skills { skills: usable_skills };
         Self {
-             //データ
-             scenario: vec![
-                 Message::Info(first_message.clone()),
-                 Message::Info("おうさま：アイテムを　ひとつ　さずけよう。".into()),
-                 Message::UpdateSelectorAndInfo(RandomItemCollection(Rarity::new(1), 2), "どの　アイテムを　もらう？".into()),
-                 Message::ShowItemsForPick,
-                 Message::GiveSelectedItemForUser,
-                 Message::Info("さあ　まおうを　たおす　たびの　はじまりだ。".into()),
-                 Message::Info("てきが　あらわれた！".into()),
-                 Message::UpdateSelectorAndInfo(RandomEnemyCollection(Level::new(1), 1), "どうする？".into()),
-                 Message::StartBattle,
+            battle_operation_menu: battle_operation_menu::App::new(),
+            use_skill_menu: use_skill_menu::App::new(skills_for_menu, false),
+            //データ
+            scenario: vec![
+                Message::Info(first_message.clone()),
+                Message::Info("おうさま：アイテムを　ひとつ　さずけよう。".into()),
+                Message::UpdateSelectorAndInfo(RandomItemCollection(Rarity::new(1), 2), "どの　アイテムを　もらう？".into()),
+                Message::ShowItemsForPick,
+                Message::GiveSelectedItemForUser,
+                Message::Info("さあ　まおうを　たおす　たびの　はじまりだ。".into()),
+                Message::Info("てきが　あらわれた！".into()),
+                Message::UpdateSelectorAndInfo(RandomEnemyCollection(Level::new(1), 1), "".into()),
+                Message::BattleOperationMenu(battle_operation_menu::Message::Initial),
             ],
             scenario_idx: 0,
             master_data,
             system_info: first_message.clone(),
-            choice_info: "".to_string(),
-            usable_skills,
             items_for_get: vec![],
             owned_items: vec![],
             selected_item: None,
             encountered_enemies: vec![],
-            //選択されたオブジェクト
-            selected_enemy: None,
-            selected_battle_operation: None,
-            selected_use_skill: None,
-            selected_use_item: None,
             //表示制御
-            page_of_battle_operation: None,
             show_next_button: true,
             show_items_for_pick: false,
-            show_encountered_enemies: false,
-            show_battle_operations: false,
-            show_usable_skills: false,
-            show_owned_items: false,
-            show_skill_confirm_button: false,
-            show_back_to_select_skill_button: false,
-            show_battle_operation_confirm_button: false,
         }
     }
 
     fn hide_all_components(&mut self) {
         self.show_next_button = false;
         self.show_items_for_pick = false;
-        self.show_encountered_enemies = false;
-        self.show_battle_operations = false;
-        self.show_usable_skills = false;
-        self.show_owned_items = false;
-        self.show_skill_confirm_button = false;
-        self.show_back_to_select_skill_button = false;
-        self.show_battle_operation_confirm_button = false;
     }
     fn update(&mut self, message: Message) {
         self.hide_all_components();
         match message {
             Message::Next => {
+                // シナリオを進める
                 self.scenario_idx += 1;
                 if let Some(msg) = self.scenario.get(self.scenario_idx) {
                     self.update(msg.clone());
                 }
             }
             Message::ShowItemsForPick => {
+                // アイテムを貰うためのドロップダウンリストを表示する
                 self.show_items_for_pick = true;
             }
             Message::HideItemsForPick => {
+                // アイテムを貰うためのドロップダウンリストを隠す
                 self.show_items_for_pick = false;
             }
-            Message::ShowEncounteredEnemies => {
-                self.system_info = "だれに　スキルを　つかう？".to_string();
-                self.show_encountered_enemies = true;
-                self.show_back_to_select_skill_button = true;
-            }
-            Message::HideEncounteredEnemies => {
-                self.show_encountered_enemies = false;
-            }
             Message::Info(info) => {
+                // 画面上部に情報を表示したうえで、次に進むボタンを表示する
                 self.system_info = info;
                 self.show_next_button = true;
             }
             Message::UpdateSelectorAndInfo(random_collection, info) => {
+                // ドロップダウンリストの内容を変更しつつ、画面上部に情報を表示する
                 match random_collection {
                     RandomItemCollection(rarity, count) => {
                         self.items_for_get = self.master_data.items.random_pick(rarity, count as usize);
@@ -414,16 +532,15 @@ impl App {
                 self.update(Message::Next);
             }
             Message::WaitingSelectItemByUser(item) => {
+                // ユーザーがドロップダウンリストから選ぶのを待つ
                 self.selected_item = Some(item);
                 self.show_items_for_pick = true;
                 if self.selected_item.is_some() {
                     self.show_next_button = true;
                 }
             }
-            Message::EnemySelected(enemy) => {
-                self.choice_info = enemy.name.clone();
-            }
             Message::GiveSelectedItemForUser => {
+                // 選択されたアイテムを得る
                 if let Some(selected_item) = self.selected_item.clone() {
                     if let Some(existing_item) = self.owned_items.iter_mut().find(|container| container.item == selected_item) {
                         existing_item.amount += 1;
@@ -441,113 +558,60 @@ impl App {
                 }
                 self.show_next_button = true;
             }
-            Message::StartBattle => {
-                self.page_of_battle_operation = Some(PageOfBattleOperation::Root);
-            }
-            Message::DispatchBattleOperation => {
-                match self.selected_battle_operation.clone() {
-                    Some(operation) => {
-                        self.system_info = format!("{}", operation);
-                        match operation {
-                            BattleOperation::ShowSkills => {
-                                self.page_of_battle_operation = Some(PageOfBattleOperation::Skills);
-                                self.system_info = "どのスキルをつかう？".to_string();
-                            }
-                            BattleOperation::ShowItemStocks => {
-                                self.page_of_battle_operation = Some(PageOfBattleOperation::ItemContainers);
-                                self.system_info = "どのアイテムをつかう？".to_string();
-                                self.show_owned_items = true;
+            Message::BattleOperationMenu(message) => {
+                // 戦闘操作メニューを表示する
+                match message {
+                    battle_operation_menu::Message::Initial => {
+                    }
+                    battle_operation_menu::Message::OnSelectOperation(_operation) => {
+                    }
+                    battle_operation_menu::Message::OnClickNext => {
+                        match self.battle_operation_menu.operation {
+                            None => {}
+                            Some(operation) => {
+                                match operation {
+                                    battle_operation_menu::Operation::ShowSkills => {
+                                        self.use_skill_menu.visible = true;
+                                    }
+                                    battle_operation_menu::Operation::ShowItemContainers => {
+                                    }
+                                }
+
                             }
                         }
                     }
-                    None => {}
                 }
+                self.battle_operation_menu.visible = true;
+                self.battle_operation_menu.update(message);
             }
-            Message::SelectUseSkill(skill) => {
-                self.selected_use_skill = Some(skill.clone());
-                self.page_of_battle_operation = Some(PageOfBattleOperation::Skills);
-            }
-            Message::SelectUseItem(item_container) => {
-                self.selected_use_item = Some(item_container);
-            }
-            Message::SelectBattleOperation(operation) => {
-                self.selected_battle_operation = Some(operation);
-                self.show_battle_operations = true;
-                self.show_battle_operation_confirm_button = true;
+            Message::UseSkillMenu(_) => {
+                // TODO : スキル選択画面を表示する
             }
         }
     }
 
-    fn view(&self) -> Column<Message> {
+    fn view(&self) -> Element<Message> {
         let mut column = Column::new();
         let system_info = Text::new(self.system_info.as_str());
         column = column.push(system_info);
-        match self.page_of_battle_operation.clone() {
-            None => {
-                if self.show_items_for_pick {
-                    let item_candidates = iced::widget::pick_list(
-                        self.items_for_get.clone(),
-                        self.selected_item.clone(),
-                        Message::WaitingSelectItemByUser,
-                    );
-                    column = column.push(item_candidates);
-                }
 
-                if self.show_next_button {
-                    column = column.push(iced::widget::button("つぎへ").on_press(Message::Next));
-                }
-            }
-            Some(page_of_battle_operation) => {
-                match page_of_battle_operation {
-                    PageOfBattleOperation::Root => {
-                        column = column.push(iced::widget::pick_list(
-                            vec![BattleOperation::ShowSkills, BattleOperation::ShowItemStocks],
-                            self.selected_battle_operation.clone(),
-                            Message::SelectBattleOperation
-                        ));
-                        let mut confirm_button = iced::widget::button("この　こうどうで　よい");
-                        if let Some(_) = self.selected_battle_operation {
-                            confirm_button = confirm_button.on_press(Message::DispatchBattleOperation);
-                        }
-                        column = column.push(confirm_button);
-                    }
-                    PageOfBattleOperation::Skills => {
-                        column = column.push(iced::widget::pick_list(
-                            self.usable_skills.clone(),
-                            self.selected_use_skill.clone(),
-                            Message::SelectUseSkill
-                        ));
+        // サブビューの表示
+        column = column.push(self.battle_operation_menu.view().map(|message|Message::BattleOperationMenu(message)));
+        column = column.push(self.use_skill_menu.view().map(|message|Message::UseSkillMenu(message)));
 
-                        column = column.push(
-                            iced::widget::button("このスキルをつかう"));
+        // ゲームの初回でおうさまからアイテムを貰う処理
+        if self.show_items_for_pick {
+            // アイテムリスト
+            let item_candidates = pick_list(
+                self.items_for_get.clone(),
+                self.selected_item.clone(),
+                Message::WaitingSelectItemByUser,
+            );
+            column = column.push(item_candidates);
+        }
 
-                        let back = Message::StartBattle;
-                        column = column.push(
-                            iced::widget::button("もどる")
-                                .on_press(back));
-                    }
-                    PageOfBattleOperation::ItemContainers => {
-                        column = column.push(iced::widget::pick_list(
-                            self.owned_items.clone(),
-                            self.selected_use_item.clone(),
-                            Message::SelectUseItem
-                        ))
-                    }
-                    PageOfBattleOperation::Enemies => {
-                        let enemy_candidates =
-                            iced::widget::pick_list(
-                                self.encountered_enemies.clone(),
-                                self.selected_enemy.clone(),
-                                Message::EnemySelected);
-                        column = column.push(enemy_candidates);
-
-                        let back = Message::SelectBattleOperation(BattleOperation::ShowSkills);
-                        column = column.push(
-                            iced::widget::button("もどる")
-                                .on_press(back));
-                    }
-                }
-            }
+        if self.show_next_button {
+            column = column.push(iced::widget::button("つぎへ").on_press(Message::Next));
         }
         column.into()
     }
@@ -570,7 +634,7 @@ mod tests {
         let test_item = Item {
             name: "ポーション".to_string(),
             rarity: Rarity::new(1),
-            effect: Effect::Heal(Ratio { percentage:0.1 }),
+            effect: Effect::Heal(Ratio { percentage: 0.1 }),
         };
         app.selected_item = Some(test_item.clone());
         app.owned_items = vec![];
