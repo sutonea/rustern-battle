@@ -1,9 +1,21 @@
 enemies:
   enemies:
+    - name: "ラット"
+      level:
+        value: 1
+      hp: 25.0
     - name: "ゴブリン"
       level:
         value: 1
       hp: 30.0
+    - name: "スライム"
+      level:
+        value: 1
+      hp: 20.0
+    - name: "グラスホッパー"
+      level:
+        value: 1
+      hp: 15.0
     - name: "トロール"
       level:
         value: 2
