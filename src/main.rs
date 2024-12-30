@@ -11,7 +11,6 @@ pub fn main() -> iced::Result {
 }
 
 mod use_skill_menu {
-    use crate::use_skill_menu::Message::OnSelectSkill;
     use crate::{Rarity, Skill, Skills};
     use iced::widget::{pick_list, Column};
     use iced::Element;
@@ -24,7 +23,9 @@ mod use_skill_menu {
 
     #[derive(Debug, Clone)]
     pub enum Message {
+        Initial,
         OnSelectSkill(Skill),
+        OnClickNext,
         OnClickBack,
     }
 
@@ -39,11 +40,22 @@ mod use_skill_menu {
 
         pub fn update(&mut self, message: Message) {
             match message {
-                OnSelectSkill(skill) => {
-                    self.skill = Some(skill);
+                Message::Initial => {
+                    // 画面を表示する
+                    self.visible = true;
+                    // 何も選択していない状態にする
+                    self.skill = None;
+                }
+                Message::OnSelectSkill(skill) => {
+                    // 選択しているスキルを更新する
+                    self.skill = Some(skill)
+                }
+                Message::OnClickNext => {
+                    // 画面を非表示にする
+                    self.visible = false;
                 }
                 Message::OnClickBack => {
-                    self.skill = None;
+                    // 画面を非表示にする
                     self.visible = false;
                 }
             }
@@ -54,14 +66,28 @@ mod use_skill_menu {
             if !self.visible {
                 return column.into();
             }
+            column = column.push("どの　スキルを　つかう？");
             column = column.push(
                 pick_list(
                     self.skills.random_pick(Rarity { value: 1 }, 2),
                     self.skill.clone(),
-                    OnSelectSkill
+                    Message::OnSelectSkill
                 )
 
             );
+
+            match &self.skill {
+                Some(_skill) => {
+                    // 操作が選択されている場合、次へ進むためのボタンを表示する
+                    let confirm =
+                        iced::widget::button(
+                            "この　スキルで　よい"
+                        ).on_press(Message::OnClickNext);
+                    column = column.push(confirm);
+                }
+                None => {}
+            }
+
             column.into()
         }
     }
@@ -584,8 +610,15 @@ impl App {
                 self.battle_operation_menu.visible = true;
                 self.battle_operation_menu.update(message);
             }
-            Message::UseSkillMenu(_) => {
-                // TODO : スキル選択画面を表示する
+            Message::UseSkillMenu(message) => {
+                match message {
+                    use_skill_menu::Message::Initial => {}
+                    use_skill_menu::Message::OnSelectSkill(_) => {}
+                    use_skill_menu::Message::OnClickNext => {}
+                    use_skill_menu::Message::OnClickBack => {}
+                }
+                self.use_skill_menu.visible = true;
+                self.use_skill_menu.update(message);
             }
         }
     }
