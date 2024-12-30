@@ -15,7 +15,7 @@ mod use_skill_menu {
     use iced::widget::{pick_list, Column};
     use iced::Element;
 
-    pub(crate) struct App {
+    pub(crate) struct UseSkillMenu {
         pub visible: bool,
         skills: Skills,
         skill: Option<Skill>,
@@ -29,9 +29,9 @@ mod use_skill_menu {
         OnClickBack,
     }
 
-    impl App {
+    impl UseSkillMenu {
         pub fn new(skills: Skills, visible: bool) -> Self {
-            App {
+            UseSkillMenu {
                 visible,
                 skills,
                 skill: None,
@@ -129,7 +129,7 @@ mod battle_operation_menu {
         }
     }
 
-    pub struct App {
+    pub struct BattleOperationMenu {
 
         // この画面を表示するかどうか
         pub visible: bool,
@@ -138,9 +138,9 @@ mod battle_operation_menu {
         pub operation: Option<Operation>,
     }
 
-    impl App {
+    impl BattleOperationMenu {
         pub fn new() -> Self {
-            App { visible: false, operation: None }
+            BattleOperationMenu { visible: false, operation: None }
         }
 
         pub fn update(&mut self, message: Message) {
@@ -202,8 +202,8 @@ mod battle_operation_menu {
 
 struct App {
     //サブビュー
-    battle_operation_menu: battle_operation_menu::App,
-    use_skill_menu: use_skill_menu::App,
+    battle_operation_menu: battle_operation_menu::BattleOperationMenu,
+    use_skill_menu: use_skill_menu::UseSkillMenu,
     //データ
     scenario: Vec<Message>,
     scenario_idx: usize,
@@ -494,8 +494,8 @@ impl App {
         let first_message: String = "おうさま：おお　ゆうしゃよ　まおうを　たおしに　ゆくのじゃ".into();
         let skills_for_menu: Skills = Skills { skills: usable_skills };
         Self {
-            battle_operation_menu: battle_operation_menu::App::new(),
-            use_skill_menu: use_skill_menu::App::new(skills_for_menu, false),
+            battle_operation_menu: battle_operation_menu::BattleOperationMenu::new(),
+            use_skill_menu: use_skill_menu::UseSkillMenu::new(skills_for_menu, false),
             //データ
             scenario: vec![
                 Message::Info(first_message.clone()),
