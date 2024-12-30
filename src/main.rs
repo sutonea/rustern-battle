@@ -55,6 +55,8 @@ mod use_skill_menu {
                     self.visible = false;
                 }
                 Message::OnClickBack => {
+                    // 選択を解除する
+                    self.skill = None;
                     // 画面を非表示にする
                     self.visible = false;
                 }
@@ -88,6 +90,8 @@ mod use_skill_menu {
                 None => {}
             }
 
+            // 戻るボタン
+            column = column.push(iced::widget::button("もどる").on_press(Message::OnClickBack));
             column.into()
         }
     }
@@ -612,12 +616,20 @@ impl App {
             }
             Message::UseSkillMenu(message) => {
                 match message {
-                    use_skill_menu::Message::Initial => {}
-                    use_skill_menu::Message::OnSelectSkill(_) => {}
-                    use_skill_menu::Message::OnClickNext => {}
-                    use_skill_menu::Message::OnClickBack => {}
+                    use_skill_menu::Message::Initial => {
+                        self.use_skill_menu.visible = true;
+                    }
+                    use_skill_menu::Message::OnSelectSkill(_) => {
+                        self.use_skill_menu.visible = true;
+                    }
+                    use_skill_menu::Message::OnClickNext => {
+                        self.use_skill_menu.visible = false;
+                    }
+                    use_skill_menu::Message::OnClickBack => {
+                        self.use_skill_menu.visible = false;
+                        self.battle_operation_menu.visible = true;
+                    }
                 }
-                self.use_skill_menu.visible = true;
                 self.use_skill_menu.update(message);
             }
         }
