@@ -2,6 +2,7 @@ mod battle_operation_menu;
 mod target_enemy_menu;
 mod use_skill_menu;
 mod battle_result_menu;
+mod calc_battle_result;
 
 use crate::battle_rules::Character;
 use crate::RandomCollection::{RandomEnemyCollection, RandomItemCollection};
@@ -17,13 +18,6 @@ pub fn main() -> iced::Result {
         .run()
 }
 
-mod calc_battle_result {
-    use crate::{Character, Player};
-
-    trait CalcBattleResult {
-        fn player_turn(player: Player, enemy: Character) {}
-    }
-}
 
 
 mod battle_rules {

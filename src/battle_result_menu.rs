@@ -8,7 +8,7 @@ mod battle_result_menu {
     use std::rc::Rc;
 
     #[derive(Debug, Clone)]
-    pub(crate) struct BattleResultMenu {
+    pub struct BattleResultMenu {
         skill: Skill,
         from: Rc<RefCell<Character>>,
         to: Option<Rc<RefCell<Character>>>,
@@ -19,7 +19,7 @@ mod battle_result_menu {
     }
 
     #[derive(Debug, Clone)]
-    pub(crate) enum Message {
+    pub enum Message {
         Initial,
         OnClickNext,
     }
@@ -259,3 +259,6 @@ mod battle_result_menu {
         }
     }
 }
+
+pub use battle_result_menu::BattleResultMenu;
+pub use battle_result_menu::Message;
