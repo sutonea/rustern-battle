@@ -222,7 +222,7 @@ struct App {
     target_enemy_menu: Option<target_enemy_menu::TargetEnemyMenu>,
     battle_result_menu: Option<battle_result_menu::BattleResultMenu>,
     //プレイヤー
-    player: Character,
+    player: Box<Character>,
     //データ
     scenario: Vec<Message>,
     scenario_idx: usize,
@@ -532,7 +532,7 @@ impl App {
         };
 
         Self {
-            player: Character {
+            player: Box::new(Character {
                 name: "ゆうしゃ".into(),
                 level: Level { value: 1 },
                 hp: 100.0,
@@ -546,7 +546,7 @@ impl App {
                 turn_of_frost: 0,
                 turn_of_feather: 0,
                 skills: usable_skills.clone(),
-            },
+            }),
             battle_operation_menu: None,
             use_skill_menu: None,
             target_enemy_menu: None,
