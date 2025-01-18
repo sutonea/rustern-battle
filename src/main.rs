@@ -274,6 +274,9 @@ mod battle_result_menu {
         from: Rc<RefCell<Character>>,
         to: Option<Rc<RefCell<Character>>>,
         list_texts: Vec<String>,
+        show_battle_end_button: bool,
+        show_enemy_turn_button: bool,
+        show_game_over_button: bool
     }
 
     #[derive(Debug, Clone)]
@@ -290,6 +293,9 @@ mod battle_result_menu {
                 from: Rc::new(from.clone().into()),
                 to: Some(Rc::new(to.unwrap().into())),
                 list_texts: vec![],
+                show_enemy_turn_button: false,
+                show_battle_end_button: false,
+                show_game_over_button: false
             };
             menu.effect_before_skill();
             match menu.skill.effect.clone() {
@@ -306,9 +312,21 @@ mod battle_result_menu {
                             to_ref.borrow_mut().name,
                             damage
                         ));
+                        // target の残りHPを表示
+                        menu.list_texts.push(format!(
+                            "{} の HP: {}",
+                            to_ref.borrow().name,
+                            to_ref.borrow().hp
+                        ));
                         if to_ref.borrow_mut().hp <= 0.0 {
                             menu.list_texts.push(format!("{} は たおれた！", to_ref.borrow_mut().name));
                         }
+                    } else {
+                        menu.list_texts.push(format!(
+                            "{} の {} は失敗した...",
+                            from.name,
+                            menu.skill.clone().name,
+                        ));
                     }
                 }
                 Effect::Heal(rate) => {
@@ -348,8 +366,17 @@ mod battle_result_menu {
                     }
                 }
             }
-
+            // target の HP が 0 以下ならば、戦闘終了。そうでなければ戦闘続行。
+            if menu.to.as_ref().unwrap().borrow_mut().hp <= 0.0 {
+                menu.list_texts.push(format!("{} は たおれた！", menu.to.as_ref().unwrap().borrow_mut().name));
+                menu.show_battle_end_button = true;
+            }
             menu.effect_after_skill();
+            // from の HP が 0以下ならば、戦闘終了。
+            if menu.from.borrow_mut().hp <= 0.0 {
+                menu.list_texts.push(format!("{} は たおれた！", menu.from.borrow_mut().name));
+                menu.show_game_over_button = true;
+            }
             menu
         }
 
@@ -367,6 +394,7 @@ mod battle_result_menu {
             for text in &self.list_texts {
                 column = column.push(iced::widget::text!("{}", text));
             }
+            column = column.push(iced::widget::button("つぎへ").on_press(Message::OnClickNext));
             column.into()
         }
 
